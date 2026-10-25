@@ -1,0 +1,5 @@
+{
+  "name":"lifeone-nova-gemini","version":"2.1.0","private":true,"type":"module",
+  "scripts":{"start":"node server/index.js","dev":"node server/index.js","check":"node --check server/index.js"},
+  "engines":{"node":">=20"},"dependencies":{"express":"^4.21.2","dotenv":"^16.4.5","helmet":"^8.0.0","express-rate-limit":"^7.5.0"}
+}
