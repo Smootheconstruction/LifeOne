@@ -14,8 +14,34 @@ const url=window.LIFEONE_SUPABASE_URL,key=window.LIFEONE_SUPABASE_PUBLISHABLE_KE
 let db,user,friend=null;
 if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);init()}
 function show(userNow){const changed=user?.id!==userNow?.id;user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends'].forEach(id=>$(id).replaceChildren());$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){switchTab(location.hash==='#messages'?'messages':'profile');loadProfile()}}
-async function init(){const {data,error}=await db.auth.getUser();if(error)status(error.message);show(data?.user);db.auth.onAuthStateChange((_e,s)=>{if(s?.user?.id!==user?.id)show(s?.user||null)})}
-$('loginForm').onsubmit=async e=>{e.preventDefault();const {error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});status(error?.message||'Signed in')};
+async function init(){
+  // Guests have no session; that is normal and should not display as an error.
+  try{
+    const {data,error}=await db.auth.getSession();
+    if(error){status('Unable to restore your session. Please sign in again.');show(null)}
+    else {show(data?.session?.user||null);if(!data?.session)status('Sign in with an invited World Connect account to use Messages.')}
+  }catch(e){show(null);status('Could not check sign-in status. Refresh and try again.')}
+  db.auth.onAuthStateChange((event,session)=>{
+    const incoming=session?.user||null;
+    if(incoming?.id!==user?.id)show(incoming);
+    if(event==='SIGNED_OUT')status('Signed out.');
+  });
+}
+$('loginForm').onsubmit=async e=>{
+  e.preventDefault();
+  const submit=$('loginForm').querySelector('button:not([type]),button[type="submit"]');
+  if(submit)submit.disabled=true;
+  status('Signing in…');
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+    if(error){status(error.message);return}
+    if(!data?.user||!data?.session){status('Sign-in did not return an active session. Please try again.');return}
+    show(data.user);
+    $('password').value='';
+    status('Signed in successfully. World Connect is still in private beta.');
+  }catch(e){status('Unable to connect to the sign-in service. Please try again.')}
+  finally{if(submit)submit.disabled=false}
+};
 // Self-service signup is disabled in the private beta. Supabase Auth settings must also disable public signup.
 $('logout').onclick=async()=>{const {error}=await db.auth.signOut();status(error?.message||'Signed out')};
 function switchTab(t){document.querySelectorAll('.tab').forEach(n=>n.classList.toggle('hidden',n.id!==t));document.querySelectorAll('[data-tab]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.tab===t)));if(t==='people')loadPeople();if(t==='friends'||t==='messages')loadFriends();if(t==='messages')location.hash='messages'}
