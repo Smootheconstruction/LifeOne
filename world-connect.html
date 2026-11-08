@@ -7,7 +7,7 @@
 <div class="row"><button type="submit">Sign in</button><button type="button" class="secondary" id="forgotPassword">Forgot password?</button></div></form>
 <div class="card" style="background:#101a32;margin:18px 0 0">
 <h2>🆕 Create account / Get invited</h2>
-<p><strong>New accounts are invitation-only during the private beta.</strong> You can create and customize a photo profile immediately in NOVA under My Profile, but that local profile does not create a login. The NOVA administrator must invite an email address for online access.</p><p><a class="secondary" href="/#profile" style="display:inline-block;text-decoration:none;padding:12px;border-radius:12px">👤 Create my photo profile in NOVA</a></p><p><strong>Project owner:</strong> To enable a real sign-in, send an invitation using the Supabase administrator dashboard:</p>
+<p><strong>New accounts are invitation-only during the private beta.</strong> You can create and customize a photo profile immediately in NOVA under My Profile, but that local profile does not create a login. The NOVA administrator must invite an email address for online access.</p><p><a class="secondary" href="/" style="display:inline-block;text-decoration:none;padding:12px;border-radius:12px">👤 Create my photo profile in NOVA</a></p><p><strong>Project owner:</strong> To enable a real sign-in, send an invitation using the Supabase administrator dashboard:</p>
 <ol style="line-height:1.8;color:#e5edff;padding-left:22px">
 <li>Sign in to the NOVA Supabase project using your administrator account.</li>
 <li>Open <strong>Authentication → Users</strong>.</li>
@@ -21,6 +21,7 @@
 <div id="inviteHelp" class="alert hidden" role="region" aria-label="Private beta invitation instructions" style="margin-top:12px">
 <p>Ask the NOVA administrator to invite your email address. Check your inbox and spam folder, accept the invitation and complete the account setup, then sign in above. Public self-registration isn't available during the private beta.</p>
 </div></div></section>
+<section id="passwordRecovery" class="card hidden"><h2>Set a new password</h2><p>Choose a new password for the invited account you are recovering.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button></form></section>
 <section id="app" class="hidden"><div class="row"><span id="identity"></span><button class="secondary" id="logout">Sign out</button></div><div class="card tabs"><button data-tab="profile">Profile</button><button data-tab="people">Explore</button><button data-tab="friends">Friends</button><button data-tab="messages">Messages</button></div>
 <section class="card tab" id="profile"><h2>My profile</h2><form id="profileForm"><label>Nickname<input id="displayName" maxlength="40" required></label><label>About you<textarea id="bio" maxlength="180"></textarea></label><button>Save profile</button></form></section>
 <section class="card tab hidden" id="people"><h2>Discover explorers</h2><button class="secondary" id="refreshPeople">Refresh</button><div id="peopleList"></div></section>
@@ -43,6 +44,7 @@ async function init(){
   db.auth.onAuthStateChange((event,session)=>{
     const incoming=session?.user||null;
     if(incoming?.id!==user?.id)show(incoming);
+    if(event==='PASSWORD_RECOVERY'){$('passwordRecovery').classList.remove('hidden');$('login').classList.add('hidden');$('app').classList.add('hidden');status('Password recovery verified. Enter your new password below.');}
     if(event==='SIGNED_OUT')status('Signed out.');
   });
 }
@@ -61,6 +63,7 @@ $('loginForm').onsubmit=async e=>{
   }catch(e){status('Unable to connect to the sign-in service. Please try again.')}
   finally{if(submit)submit.disabled=false}
 };
+$('recoveryForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('recoveryForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.auth.updateUser({password:$('recoveryPassword').value});if(error){status('Could not set password: '+error.message);return}$('recoveryPassword').value='';$('passwordRecovery').classList.add('hidden');$('app').classList.remove('hidden');status('Password updated. Your account is signed in.')}catch(e){status('Unable to save password. Try again.')}finally{button.disabled=false}});
 $('forgotPassword').addEventListener('click',async()=>{const email=$('email').value.trim();if(!email){status('Enter the email for your invited World Connect account first.');$('email').focus();return}if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){status('Enter a valid email address first.');return}const button=$('forgotPassword');button.disabled=true;status('Requesting a password-reset email…');try{const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/world-connect.html'});status(error?'Password reset could not be sent: '+error.message:'If the email belongs to an existing account, check your inbox for a reset link. The account must already exist.')}catch(e){status('Unable to request password reset right now.')}finally{button.disabled=false}});
 $('signup').addEventListener('click',()=>{const panel=$('inviteHelp'),opening=panel.classList.contains('hidden');panel.classList.toggle('hidden',!opening);$('signup').setAttribute('aria-expanded',String(opening));status(opening?'Invitations are managed by the NOVA administrator. This page does not create accounts.':'Sign in if you already have an invited account.')});
 // Self-service signup is disabled in the private beta. Supabase Auth settings must also disable public signup.
