@@ -5,6 +5,23 @@
 -- Do not activate follows until full RLS and two-user block/unblock tests pass.
 -- No public signup, leader awarding, paid subscriptions, or access to private data.
 
+-- Helper must be owned by a role with BYPASSRLS (e.g., postgres in SQL Editor)
+-- and reviewed prior to deployment. Returns true for any request where the caller
+-- is not one of the two parties, preventing arbitrary relationship probes.
+create or replace function public.nova_follow_pair_blocked(a uuid,b uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $
+  select (select auth.uid()) is null
+    or (select auth.uid()) not in (a,b)
+    or exists (
+      select 1 from public.user_blocks x
+      where (x.blocker_id=a and x.blocked_id=b)
+         or (x.blocker_id=b and x.blocked_id=a)
+    );
+$;
+revoke all on function public.nova_follow_pair_blocked(uuid,uuid) from public,anon;
+grant execute on function public.nova_follow_pair_blocked(uuid,uuid) to authenticated;
+
 create table if not exists public.nova_follows (
   follower_id uuid not null references auth.users(id) on delete cascade,
   followee_id uuid not null references auth.users(id) on delete cascade,
@@ -20,11 +37,7 @@ grant select, insert, delete on public.nova_follows to authenticated;
 
 drop policy if exists "nova_follows_read_own" on public.nova_follows;
 create policy "nova_follows_read_own" on public.nova_follows for select to authenticated
-using ((select auth.uid()) in (follower_id, followee_id) and not exists (
- select 1 from public.user_blocks b
- where (b.blocker_id = follower_id and b.blocked_id = followee_id)
-    or (b.blocker_id = followee_id and b.blocked_id = follower_id)
-));
+using ((select auth.uid()) in (follower_id, followee_id) and not public.nova_follow_pair_blocked(follower_id,followee_id));
 
 drop policy if exists "nova_follows_create_self" on public.nova_follows;
 create policy "nova_follows_create_self" on public.nova_follows for insert to authenticated
@@ -32,23 +45,14 @@ with check (
  follower_id = (select auth.uid())
  and follower_id <> followee_id
  and exists(select 1 from public.profiles p where p.id = followee_id)
- and not exists (
-  select 1 from public.user_blocks b where
-  (b.blocker_id = follower_id and b.blocked_id = followee_id)
-  or (b.blocker_id = followee_id and b.blocked_id = follower_id)
- )
+ and not public.nova_follow_pair_blocked(follower_id,followee_id)
 );
 
 drop policy if exists "nova_follows_delete_self" on public.nova_follows;
 create policy "nova_follows_delete_self" on public.nova_follows for delete to authenticated
 using (follower_id = (select auth.uid()));
 
--- SECURITY NOTE: user_blocks only allows selecting your own outbound blocks by default.
--- PostgreSQL RLS would hide a block by the *other* person. So the policies above
--- ALONE are insufficient for reciprocal block enforcement. Apply a reviewed,
--- SECURITY DEFINER boolean helper with fixed search_path and no information-leaking
--- response, then replace the "not exists" checks with that function.
--- This migration is intentionally a SECURITY REVIEW DRAFT. DO NOT DEPLOY as-is.
+-- Block checks use the SECURITY DEFINER helper; test both directions and RLS ownership.
 
 create table if not exists public.nova_leader_awards (
  user_id uuid primary key references auth.users(id) on delete cascade,
