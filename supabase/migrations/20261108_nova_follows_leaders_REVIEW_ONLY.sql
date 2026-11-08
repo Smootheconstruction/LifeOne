@@ -57,8 +57,6 @@ using (follower_id = (select auth.uid()));
 create table if not exists public.nova_leader_awards (
  user_id uuid primary key references auth.users(id) on delete cascade,
  awarded_at timestamptz not null default now(),
- review_note text not null default '' check (char_length(review_note) <= 600),
- review_reference text,
  revoked_at timestamptz
 );
 alter table public.nova_leader_awards enable row level security;
