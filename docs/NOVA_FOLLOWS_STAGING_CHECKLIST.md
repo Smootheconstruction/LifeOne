@@ -31,3 +31,26 @@ Only after verified staging tests and a separate production review should the au
 ## Paid membership and earned badges
 - Pro membership is a descriptive preview; there is no billing, subscription checkout or paid entitlement.
 - Leader awards require a separate documented admin process; no client-side automatic badge award based on followers, likes, or payments.
+
+
+## Additional backend work prepared — not yet deployed
+- Corrected malformed SQL function dollar quoting in `20261108_nova_follows_leaders_REVIEW_ONLY.sql`.
+- Review and apply `20261108_nova_block_enforcement_REVIEW_ONLY.sql` **after** the block function is installed. Confirm existing friend/message RLS policies permit only authorized rows; restrictive policies do not replace ownership checks.
+- Review `20261108_nova_shared_posts_REVIEW_ONLY.sql` to stage authenticated posts, comments and likes. All new posts/comments are pending review; no user can self-approve. Text only; image/video paths cannot be inserted by a browser user yet.
+- Set up an actual moderator/admin review workflow with audit logging before enabling publishing or user reports. Reports must never be visible to accused members.
+- Set up private media storage with restrictive object policies, signed URLs, malware/content checks, file-size and content limits and appropriate removal workflows before allowing uploads.
+- Confirm that every new table and helper is accessible only to its intended roles; client feature flags are not a security control.
+
+## Activation switches currently OFF
+- `window.LIFEONE_FOLLOWS_ENABLED = false`
+- `window.LIFEONE_SAFETY_ENABLED = false`
+- `window.LIFEONE_SHARED_POSTS_ENABLED = false`
+- No billing or public account registration is enabled by these changes.
+- Never flip a switch merely because Vercel deployment succeeded: test Supabase policies and moderator procedures first.
+
+## What the owner still needs to arrange
+1. Administrator access to Supabase SQL Editor (prefer a staging project), or a trusted Supabase developer to review/apply the migrations.
+2. Verification that Auth invitations are restricted as intended and existing World Connect users are isolated by RLS.
+3. A moderator/operator to review submitted posts and safety reports using trusted admin-only workflows.
+4. Independent second invited adult beta account to complete reciprocal follow, block, report, message and visibility tests.
+5. An explicit approval to enable a *private* beta, followed by a separate production/public launch review.
