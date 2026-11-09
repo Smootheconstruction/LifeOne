@@ -46,6 +46,30 @@
 .nova-for-you-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}.nova-for-you-card{min-height:168px;background:linear-gradient(140deg,#243575,#193448);border:1px solid #ffffff2a;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:9px}
 .nova-for-you-card strong{font-size:17px}.nova-for-you-card p{margin:0;font-size:12px}.nova-for-you-card small{margin-top:auto;color:#a5f5ed}.nova-sample-category{font-size:11px;color:#96f4ed}
 @media(max-width:360px){.nova-for-you-feed{grid-template-columns:1fr}}
+/* NOVA chat styling. Same secured accepted-friends backend. */
+.nova-chat{padding:12px!important;background:linear-gradient(160deg,#161e40,#0d1736)!important}
+.nova-chat-intro{display:flex;gap:12px;align-items:center;padding:10px 6px 16px}
+.nova-chat-mark{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:26px;color:white;background:linear-gradient(130deg,#623ef1,#19b7bc);box-shadow:0 6px 24px #7454ff55}
+.nova-chat-intro h2{margin:0;font-size:23px}.nova-chat-intro p{margin:5px 0 0;font-size:12px}
+.nova-chat-contacts{padding:6px}.nova-chat-contacts h3{font-size:13px;color:#b6d5f1;margin:4px 0 10px}
+#chatFriends{display:flex;gap:8px;flex-wrap:wrap}
+#chatFriends button{border-radius:100px;padding:9px 12px;min-height:40px;font-size:12px;border:1px solid #7ad9d466;background:#213455;color:white}
+.nova-chat-room{overflow:hidden;border:1px solid #8b99e244;border-radius:20px;background:linear-gradient(#101b3c,#0b1432);margin-top:14px}
+.nova-chat-room-head{display:flex;gap:11px;align-items:center;background:#ffffff0c;padding:12px;border-bottom:1px solid #ffffff20}
+.nova-chat-room-head h3{margin:0;font-size:16px}.nova-chat-room-head small{font-size:11px;color:#a5c5d9}.nova-chat-room-head>div{flex:1;min-width:0}
+.nova-chat-room-avatar{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;flex:none;background:linear-gradient(120deg,#73e9e7,#a58aff);color:#17213b;font-weight:800;font-size:20px}
+#refreshMessages{min-width:38px;min-height:38px;font-size:21px;padding:4px 10px;border-radius:12px}
+.nova-chat-conversation{height:min(48vh,410px);min-height:220px;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px 11px;background:radial-gradient(circle at 25% 15%,#4139a51f,transparent 55%)}
+.nova-chat-conversation .bubble{max-width:82%;margin:0;padding:11px 13px;min-width:56px;border-radius:17px 17px 17px 5px;background:#283854;color:white;box-shadow:0 5px 12px #0002;overflow-wrap:anywhere;font-size:14px}
+.nova-chat-conversation .bubble.mine{align-self:flex-end;border-radius:17px 17px 5px 17px;margin-left:0;background:linear-gradient(130deg,#775af5,#4267e1);color:white}
+.nova-bubble-text{display:block;white-space:pre-wrap}.nova-bubble-time{display:block;text-align:right;font-size:10px;margin-top:5px;color:#e1e5ffb0}
+.nova-chat-empty{margin:auto;text-align:center;font-size:14px;color:#a8bce0}
+.nova-chat-compose{display:flex;gap:8px;padding:10px;background:#ffffff0c;border-top:1px solid #ffffff18}
+.nova-chat-compose input{flex:1;min-width:0;min-height:44px;padding:10px 14px;border-radius:30px;border:1px solid #ffffff3a;background:#121d3c;color:white;font-size:14px}
+.nova-chat-compose button{min-height:44px;min-width:48px;border-radius:99px;font-size:21px;padding:6px}
+.nova-emoji-bar{display:flex;overflow-x:auto;gap:5px;padding:8px 10px 0;scrollbar-width:thin}
+.nova-emoji-bar button{padding:4px;min-width:36px;min-height:36px;border-radius:12px;background:#ffffff0c;color:white;font-size:20px}
+.nova-chat-privacy{font-size:11px!important;margin:12px 6px 4px!important;color:#abbdd9}
 </style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
@@ -93,7 +117,13 @@
 <form id="novaPrivatePostForm"><label for="novaPrivatePostText">Caption<textarea id="novaPrivatePostText" rows="3" maxlength="500" required placeholder="Share your story, music, work or inspiration..."></textarea></label><label for="novaPrivatePostPhoto">Photo (optional)<input id="novaPrivatePostPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="nova-profile-hint">JPG, PNG, or WebP up to 3 MB. Videos and public posts require later security testing.</p><button id="novaPrivatePostSave" type="submit">Save to my private posts</button><p id="novaPrivatePostStatus" role="status" aria-live="polite"></p></form></div>
 <div class="nova-shared-future"><h3>Public posts — future beta</h3><p>Future account-connected posting for approved beta members. This is separate from the device-only Universe Feed.</p><p id="sharedPostsGate" class="alert">Shared posts are disabled until the database migration, moderation procedures and access tests are verified. Photos and videos are not uploaded here.</p></div><div id="sharedPostsArea" class="hidden"><form id="sharedPostForm"><label>Your post<textarea id="sharedPostBody" maxlength="750" required placeholder="Share something useful with your universe"></textarea></label><label>Who should be able to see approved posts?<select id="sharedPostVisibility"><option value="only_me">Only me</option><option value="followers">Followers</option><option value="public">All invited NOVA beta members</option></select></label><p class="alert">Submitted posts are pending human moderation. No immediate publication or media upload.</p><button type="submit">Submit for review</button></form><p id="sharedPostsStatus" role="status" aria-live="polite"></p><h3>My submitted posts</h3><div id="mySharedPosts"></div><h3>Approved discovery posts</h3><div id="sharedDiscoverPosts"></div><button type="button" class="secondary" id="sharedPostsRefresh">Refresh posts</button></div></section>
 <section class="card tab hidden" id="safety"><h2>🛡️ Privacy &amp; Safety</h2><p>Block or report accounts in a controlled beta. Blocking must be enforced server-side across follows, friendships and direct messages.</p><p id="safetyGate" class="alert">Safety controls are not active until the moderation database and block enforcement are verified. Do not use these controls to report an emergency.</p><div id="safetyArea" class="hidden"><label>Account<select id="safetyPerson"><option value="">Select an account</option></select></label><div class="row"><button type="button" class="secondary" id="safetyBlock">Block account</button><button type="button" class="secondary" id="safetyUnblock">Unblock account</button></div><form id="safetyReportForm"><label>Reason<select id="safetyReportReason"><option value="spam">Spam</option><option value="harassment">Harassment</option><option value="bullying">Bullying</option><option value="impersonation">Impersonation</option><option value="scam">Scam</option><option value="hate">Hateful content</option><option value="inappropriate_content">Inappropriate content</option><option value="other">Other</option></select></label><label>Optional details<textarea id="safetyReportDetails" maxlength="2000" placeholder="Describe the concern without including sensitive personal information"></textarea></label><button type="submit">Submit report privately</button></form><p id="safetyStatus" role="status" aria-live="polite"></p><h3>Accounts I've blocked</h3><div id="safetyBlocked"></div></div></section>
-<section class="card tab hidden" id="messages"><h2>Direct messages</h2><p class="alert">To chat, both people need invited accounts. Send a friend request using Explore, then the other person accepts it under Friends. Only accepted friends appear below.</p><div id="chatFriends"></div><h3 id="chatTitle">Choose a friend</h3><button id="refreshMessages" class="secondary">Refresh messages</button><div id="conversation"></div><form id="sendForm" class="hidden"><div class="row"><input id="message" maxlength="2000" placeholder="Write a message" required><button>Send</button></div></form><p class="alert">Do not share sensitive information. Reporting/blocking and an independent security audit are required before public release.</p></section></section></main>
+<section class="card tab hidden nova-chat" id="messages"><div class="nova-chat-intro"><span class="nova-chat-mark">✦</span><div><h2>NOVA Chats</h2><p>One world. Real connections. Your private beta conversations.</p></div></div>
+<div class="nova-chat-contacts"><h3>♡ Your connections</h3><div id="chatFriends"></div></div>
+<div class="nova-chat-room"><div class="nova-chat-room-head"><span class="nova-chat-room-avatar" id="chatPartnerAvatar">✦</span><div><h3 id="chatTitle">Choose a friend</h3><small id="chatSubtitle">Select a friend to start chatting</small></div><button type="button" id="refreshMessages" class="secondary" aria-label="Refresh messages" title="Refresh messages">↻</button></div>
+<div id="conversation" class="nova-chat-conversation" aria-live="polite"><p class="nova-chat-empty">✨ Your messages will appear here.</p></div>
+<form id="sendForm" class="hidden"><div class="nova-emoji-bar" aria-label="Quick emoji"><button type="button" data-emoji="❤️" aria-label="Heart emoji">❤️</button><button type="button" data-emoji="😂" aria-label="Laugh emoji">😂</button><button type="button" data-emoji="😍" aria-label="Heart eyes emoji">😍</button><button type="button" data-emoji="🔥" aria-label="Fire emoji">🔥</button><button type="button" data-emoji="👏" aria-label="Clapping emoji">👏</button><button type="button" data-emoji="🇯🇲" aria-label="Jamaica flag emoji">🇯🇲</button><button type="button" data-emoji="🌎" aria-label="Globe emoji">🌎</button><button type="button" data-emoji="✨" aria-label="Sparkles emoji">✨</button></div>
+<div class="nova-chat-compose"><input id="message" maxlength="2000" placeholder="Message your friend…" aria-label="Your message" required autocomplete="off"><button type="submit" aria-label="Send message">➤</button></div></form></div>
+<p class="nova-chat-privacy">🔒 Only accepted NOVA friends can exchange private-beta messages. Avoid sensitive information; reporting and block enforcement are still under review.</p></section></section></main>
 <script>
 // Staging only: do NOT import production config.js
 window.LIFEONE_SUPABASE_URL='https://ovchjguvyqaweuwliwyr.supabase.co';
@@ -112,7 +142,7 @@ const accessReady=window.LIFEONE_ACCESS_REQUESTS_ENABLED===true;
 document.getElementById('accessRequestSubmit').disabled=!accessReady;
 document.getElementById('accessRequestStatus').textContent=accessReady?'Registration requests are open for the private test. An administrator must approve and invite applicants.':'Registration requests are not enabled for this test yet.';
 if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);db.auth.onAuthStateChange((event,session)=>{const incoming=session?.user||null;if(incoming?.id!==user?.id)show(incoming);if(event==='PASSWORD_RECOVERY'||(incoming&&inviteCallback)){showSetPassword('Invitation or password link verified. Create your NOVA test password below.')}if(event==='SIGNED_OUT')status('Signed out.');});init()}
-function show(userNow){const changed=user?.id!==userNow?.id;if(changed)stopMessagePolling();user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
+function show(userNow){const changed=user?.id!==userNow?.id;if(changed)stopMessagePolling();user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('chatPartnerAvatar').textContent='✦';$('chatSubtitle').textContent='Select a friend to start chatting';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
 $('accessRequestForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!ready||!accessReady||!db)return;
@@ -428,7 +458,7 @@ async function loadFriends(){
    $('chatFriends').append(action('Chat with '+name,()=>{
     friend=other;$('conversation').replaceChildren();
     $('sendForm').classList.add('hidden');
-    $('chatTitle').textContent='Chat with '+name;
+    $('chatTitle').textContent=name;$('chatPartnerAvatar').textContent=(name.trim()[0]||'N').toUpperCase();$('chatSubtitle').textContent='Private conversation · NOVA World Connect';
     loadMessages();
    }));
    continue;
@@ -478,16 +508,27 @@ async function loadMessages(silent=false){
   if(!user||user.id!==requestedUser||friend!==requestedFriend)return;
   if(error){if(!silent)status('Messages could not be refreshed.');return}
   const root=$('conversation');
-  const existing=JSON.stringify([...root.children].map(el=>({body:el.textContent,mine:el.classList.contains('mine')})));
+  const existing=JSON.stringify([...root.children].filter(n=>n.classList.contains('bubble')).map(el=>({body:el.querySelector('.nova-bubble-text')?.textContent||'',mine:el.classList.contains('mine')})));
   const next=JSON.stringify((data||[]).map(m=>({body:m.body,mine:m.sender_id===requestedUser})));
   if(existing!==next){
-   root.replaceChildren(...(data||[]).map(m=>el('div',m.body,'bubble'+(m.sender_id===requestedUser?' mine':''))));
+   const fragment=document.createDocumentFragment();
+   if(!(data||[]).length)fragment.append(el('p','✨ Say hello! Your conversation starts here.','nova-chat-empty'));
+   for(const m of data||[]){const bubble=el('div','','bubble'+(m.sender_id===requestedUser?' mine':''));bubble.append(el('span',m.body,'nova-bubble-text'));if(m.created_at){const d=new Date(m.created_at);if(!Number.isNaN(d.valueOf()))bubble.append(el('time',d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}),'nova-bubble-time'))}fragment.append(bubble)}
+   root.replaceChildren(fragment);
+   if(!silent)root.scrollTop=root.scrollHeight;
   }
   $('sendForm').classList.remove('hidden');
  }catch(e){if(!silent)status('Could not load messages.')}
  finally{messageLoading=false}
 }
 $('refreshMessages').onclick=()=>loadMessages();
+document.querySelectorAll('[data-emoji]').forEach(button=>button.addEventListener('click',()=>{
+ if(!user||!friend)return;const field=$('message'),emoji=button.dataset.emoji||'';
+ if(field.value.length+emoji.length>2000)return;
+ const from=field.selectionStart??field.value.length,to=field.selectionEnd??from;
+ field.value=field.value.slice(0,from)+emoji+field.value.slice(to);
+ field.focus();field.setSelectionRange(from+emoji.length,from+emoji.length);
+}));
 $('sendForm').onsubmit=async e=>{
  e.preventDefault();
  if(messageSending||!friend||!user)return;
