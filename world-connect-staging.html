@@ -33,20 +33,12 @@
 <script>
 // Staging only: do NOT import production config.js
 window.LIFEONE_SUPABASE_URL='https://ovchjguvyqaweuwliwyr.supabase.co';
-window.LIFEONE_SUPABASE_PUBLISHABLE_KEY=localStorage.getItem('nova_wc_staging_publishable_key_v1')||'';
+window.LIFEONE_SUPABASE_PUBLISHABLE_KEY='sb_publishable_JYd_ca5Aj-gGj43T5EqoCQ_bmJ6_6MI';
 window.LIFEONE_FOLLOWS_ENABLED=false;
 window.LIFEONE_SAFETY_ENABLED=false;
 window.LIFEONE_SHARED_POSTS_ENABLED=false;
 window.LIFEONE_ACCESS_REQUESTS_ENABLED=true; // STAGING-ONLY access request queue installed by project owner; public Auth signup remains OFF.
-document.getElementById('testConfigForm').addEventListener('submit',e=>{
- e.preventDefault();
- const k=document.getElementById('testPublishableKey').value.trim();
- if(!/^sb_publishable_[A-Za-z0-9_-]{8,}$/.test(k)){
-  document.getElementById('testConfigStatus').textContent='Use only the key that begins sb_publishable_. Never enter secret or service_role keys.';return;
- }
- localStorage.setItem('nova_wc_staging_publishable_key_v1',k);
- location.reload();
-});
+
 </script><script type="module">
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),status=s=>{$('status').textContent=s},el=(tag,txt,cls)=>{const n=document.createElement(tag);n.textContent=txt??'';if(cls)n.className=cls;return n},action=(name,fn)=>{const b=el('button',name,'secondary');b.onclick=fn;return b};
