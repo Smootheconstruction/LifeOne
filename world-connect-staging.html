@@ -70,6 +70,7 @@
 .nova-emoji-bar{display:flex;overflow-x:auto;gap:5px;padding:8px 10px 0;scrollbar-width:thin}
 .nova-emoji-bar button{padding:4px;min-width:36px;min-height:36px;border-radius:12px;background:#ffffff0c;color:white;font-size:20px}
 .nova-chat-privacy{font-size:11px!important;margin:12px 6px 4px!important;color:#abbdd9}
+.nova-friend-open{width:100%;text-align:left;color:#eef5ff;background:#ffffff0b;border:1px solid #ffffff15;min-height:60px;cursor:pointer}.nova-friend-open:focus-visible{outline:2px solid #8aece8;outline-offset:2px}.nova-friend-open:active{background:#384978}.nova-friend-open strong{flex:1}.nova-friend-chevron{font-size:28px;color:#98efe8;margin-left:auto}.nova-friend-post-tile{display:flex;align-items:center;justify-content:center}.nova-friend-post-tile .nova-post-art{height:auto}
 </style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
@@ -101,7 +102,10 @@
 <div class="nova-hero-actions"><button type="button" id="heroEditProfile">✎ Edit profile</button><button type="button" class="secondary" id="heroExplore">✧ Discover</button></div>
 </div>
 <div class="row" style="justify-content:space-between;gap:6px;font-size:12px"><span id="identity" style="overflow-wrap:anywhere"></span><div class="row"><button class="secondary" id="testSetPassword" type="button">Password</button><button class="secondary" id="logout">Sign out</button></div></div><nav class="card tabs" aria-label="World Connect navigation"><button data-tab="profile"><span aria-hidden="true">◉</span> Profile</button><button data-tab="people"><span aria-hidden="true">✧</span> Explore</button><button data-tab="friends"><span aria-hidden="true">♡</span> Friends</button><button data-tab="follows"><span aria-hidden="true">♛</span> Leaders</button><button data-tab="posts"><span aria-hidden="true">✦</span> For You</button><button data-tab="safety"><span aria-hidden="true">♢</span> Safety</button><button data-tab="messages"><span aria-hidden="true">✉</span> Chat</button></nav>
-<section id="otherProfile" class="card hidden" aria-label="Explorer profile"><button type="button" class="secondary" id="closeOtherProfile">← Back</button><div class="nova-other-cover"><span>✦ NOVA WORLD CONNECT</span></div><div class="nova-other-person"><div id="otherAvatar" class="nova-avatar">N</div><div><h2 id="otherName">Explorer</h2><p id="otherBio">NOVA Explorer</p><span class="nova-small-tag">🌎 NOVA Beta Member</span></div></div><p class="nova-profile-hint">For privacy, only the online display name and bio are shown. Profile photos on each tester’s device are not uploaded yet.</p><div class="row"><button type="button" id="otherFriendAction" class="secondary">Friends</button><button type="button" id="otherFollowAction" class="secondary" disabled>+ Follow · Coming soon</button></div></section>
+<section id="otherProfile" class="card hidden" aria-label="Explorer profile"><button type="button" class="secondary" id="closeOtherProfile">← Back</button><div class="nova-other-cover"><span>✦ NOVA WORLD CONNECT</span></div><div class="nova-other-person"><div id="otherAvatar" class="nova-avatar">N</div><div><h2 id="otherName">Explorer</h2><p id="otherBio">NOVA Explorer</p><span class="nova-small-tag">🌎 NOVA Beta Member</span></div></div><p class="nova-profile-hint">For privacy, only the online display name and bio are shown. Profile photos on each tester’s device are not uploaded yet.</p><div class="row"><button type="button" id="otherFriendAction" class="secondary">Friends</button><button type="button" id="otherFollowAction" class="secondary" disabled>+ Follow · Coming soon</button></div>
+<div class="nova-posts-heading"><h3>▦ Their Posts</h3><span class="nova-profile-hint" id="otherPostsLabel">Shared posts</span></div>
+<div id="otherPostsGrid" class="nova-post-grid" aria-live="polite"></div>
+<p id="otherPostsStatus" class="nova-profile-hint" role="status" aria-live="polite"></p></section>
 <section class="card tab" id="profile"><div id="profileView"><h2>👤 My NOVA Profile</h2><p class="nova-profile-hint">Your profile is ready. Tap Edit Profile only when you want to make a change.</p><div class="item"><strong id="profileViewName">NOVA Explorer</strong><p id="profileViewBio">Your story starts here.</p><p id="profileViewHandle">@explorer</p><p class="nova-profile-hint">Photo and extra profile details are still visible only on this device. Friends see your online name and bio.</p></div><button type="button" id="profileStartEdit">✎ Edit Profile</button>
 <div class="nova-posts-heading"><h3>▦ My Posts</h3><button type="button" id="profileCreatePost" class="secondary">＋ Create</button></div>
 <p class="nova-profile-hint">Private posts on this device only · not visible to other accounts</p>
@@ -336,7 +340,26 @@ function closeProfileEdit(){$('profileEditor').classList.add('hidden');$('profil
 $('heroEditProfile').addEventListener('click',openProfileEdit);
 $('profileStartEdit').addEventListener('click',openProfileEdit);
 $('profileCancelEdit').addEventListener('click',()=>{closeProfileEdit();switchTab('profile',true)});
-$('closeOtherProfile').addEventListener('click',()=>{$('otherProfile').classList.add('hidden');$('otherProfile').dataset.person='';$('otherProfile').dataset.origin='';});
+$('closeOtherProfile').addEventListener('click',()=>{$('otherProfile').classList.add('hidden');$('otherProfile').dataset.person='';$('otherProfile').dataset.origin='';$('otherPostsGrid').replaceChildren();});
+async function loadOtherPosts(other,account){
+ const root=$('otherPostsGrid');root.replaceChildren();
+ const message=$('otherPostsStatus');
+ if(!sharedPostsEnabled){
+  message.textContent='Your friend’s private photo and text drafts are saved on their own phone. They are not published online yet, so there are no shared posts to display. Account-connected posts will appear here after moderation and privacy checks.';
+  return;
+ }
+ message.textContent='Loading approved shared posts…';
+ try{
+  // Deliberately request only approved, discoverable posts; RLS remains authoritative.
+  const {data,error}=await db.from('nova_posts').select('id,body,created_at').eq('author_id',other).eq('status','approved').eq('visibility','public').order('created_at',{ascending:false}).limit(36);
+  if(!user||user.id!==account||$('otherProfile').dataset.person!==other)return;
+  if(error){message.textContent='Posts cannot be loaded with the current private-beta permissions.';return}
+  message.textContent=(data||[]).length?'Approved shared posts from this explorer.':'No approved shared posts from this explorer yet.';
+  for(const post of data||[]){
+   const tile=el('div','','nova-post-tile nova-friend-post-tile');tile.append(el('span','✦','nova-post-art'),el('span',post.body||'Post','nova-post-caption'));root.append(tile);
+  }
+ }catch(e){if(user?.id===account)message.textContent='Unable to load shared posts right now.'}
+}
 async function viewOtherProfile(other,origin){
  if(!user||other===user.id)return;
  const account=user.id;
@@ -347,9 +370,10 @@ async function viewOtherProfile(other,origin){
  $('otherName').textContent=name;$('otherBio').textContent=data.bio||'This explorer has not added a bio yet.';
  $('otherAvatar').textContent=name.charAt(0).toUpperCase()||'N';
  $('otherProfile').dataset.person=other;$('otherProfile').dataset.origin=origin||'people';
- $('otherFriendAction').textContent='View friends & requests';
+ $('otherFriendAction').textContent='Back to friends';
  $('otherFriendAction').onclick=()=>switchTab('friends',true);
  $('otherProfile').classList.remove('hidden');
+ await loadOtherPosts(other,account);
  requestAnimationFrame(()=>$('otherProfile').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
@@ -454,7 +478,12 @@ async function loadFriends(){
   const name=names.get(other)||'NOVA Explorer';
   const accepted=records.some(x=>x.status==='accepted');
   if(accepted){
-   const profileRow=el('div','','item nova-friend-row');const avatar=el('span',(name.trim().charAt(0)||'N').toUpperCase(),'nova-friend-initial');profileRow.append(avatar,el('strong',name));$('friendsList').append(profileRow);
+   const profileRow=el('button','','item nova-friend-row nova-friend-open');profileRow.type='button';
+   profileRow.setAttribute('aria-label','Open '+name+' profile and shared posts');
+   const avatar=el('span',(name.trim().charAt(0)||'N').toUpperCase(),'nova-friend-initial');
+   profileRow.append(avatar,el('strong',name),el('span','›','nova-friend-chevron'));
+   profileRow.addEventListener('click',()=>viewOtherProfile(other,'friends'));
+   $('friendsList').append(profileRow);
    $('chatFriends').append(action('Chat with '+name,()=>{
     friend=other;$('conversation').replaceChildren();
     $('sendForm').classList.add('hidden');
