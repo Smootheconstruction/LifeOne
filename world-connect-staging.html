@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LifeOne NOVA · World Connect TEST LOGIN</title><style>
-:root{font:16px system-ui;color:#f1f4ff;background:#090e22}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#50349e70,transparent 42%),#090e22;min-height:100vh}main{max-width:800px;margin:auto;padding:24px 16px 80px}a{color:#84f1eb}h1{font-size:clamp(2rem,6vw,3.5rem);margin:.4em 0}p{color:#b5c3de;line-height:1.5}.card{border:1px solid #ffffff28;background:#18213ccc;border-radius:22px;padding:20px;margin:16px 0}input,textarea,button{font:inherit;border-radius:12px;padding:12px;min-height:44px}input,textarea{width:100%;background:#0c142d;border:1px solid #ffffff38;color:white}button{border:0;background:linear-gradient(110deg,#70eeeb,#a490ff);color:#06172a;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.secondary{color:white;border:1px solid #ffffff33;background:#ffffff19}.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.row>*{min-width:0}.hidden{display:none!important}.item{padding:14px;margin:10px 0;background:#ffffff0b;border-radius:12px}.bubble{margin:8px 0;padding:12px;border-radius:14px;background:#ffffff19;overflow-wrap:anywhere}.mine{margin-left:12%;background:#5555af8c}.tabs button{margin:3px}.alert{border-left:3px solid #7eeedc;padding:12px;color:#e4efff;background:#ffffff09}label{display:block;margin:12px 0}label input{margin-top:5px}#status{min-height:25px;color:#7df2e2}</style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
+:root{font:16px system-ui;color:#f1f4ff;background:#090e22}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#50349e70,transparent 42%),#090e22;min-height:100vh}main{max-width:800px;margin:auto;padding:24px 16px 80px}a{color:#84f1eb}h1{font-size:clamp(2rem,6vw,3.5rem);margin:.4em 0}p{color:#b5c3de;line-height:1.5}.card{border:1px solid #ffffff28;background:#18213ccc;border-radius:22px;padding:20px;margin:16px 0}input,textarea,button{font:inherit;border-radius:12px;padding:12px;min-height:44px}input,textarea{width:100%;background:#0c142d;border:1px solid #ffffff38;color:white}button{border:0;background:linear-gradient(110deg,#70eeeb,#a490ff);color:#06172a;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.secondary{color:white;border:1px solid #ffffff33;background:#ffffff19}.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.row>*{min-width:0}.hidden{display:none!important}.item{padding:14px;margin:10px 0;background:#ffffff0b;border-radius:12px}.bubble{margin:8px 0;padding:12px;border-radius:14px;background:#ffffff19;overflow-wrap:anywhere}.mine{margin-left:12%;background:#5555af8c}.tabs button{margin:3px}.alert{border-left:3px solid #7eeedc;padding:12px;color:#e4efff;background:#ffffff09}label{display:block;margin:12px 0}label input{margin-top:5px}#status{min-height:25px;color:#7df2e2}.tabs button.selected-tab{outline:2px solid #84f1eb;outline-offset:2px;background:linear-gradient(110deg,#91ffed,#c4b6ff)}#app .tab{scroll-margin-top:20px}</style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
 <h2>🔐 Sign in to World Connect</h2><p>Already invited and set your password? Sign in below. Otherwise, use Request NOVA Test Access to ask for an invitation.</p>
@@ -104,8 +104,32 @@ $('forgotPassword').addEventListener('click',async()=>{const email=$('email').va
 $('signup').addEventListener('click',()=>{const panel=$('inviteHelp'),opening=panel.classList.contains('hidden');panel.classList.toggle('hidden',!opening);$('signup').setAttribute('aria-expanded',String(opening));status(opening?'Invitations are managed by the NOVA administrator. This page does not create accounts.':'Sign in if you already have an invited account.')});
 // Self-service signup is disabled in the private beta. Supabase Auth settings must also disable public signup.
 $('logout').onclick=async()=>{const {error}=await db.auth.signOut();status(error?.message||'Signed out')};
-function switchTab(t){document.querySelectorAll('.tab').forEach(n=>n.classList.toggle('hidden',n.id!==t));document.querySelectorAll('[data-tab]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.tab===t)));if(t==='people')loadPeople();if(t==='follows')loadFollows();if(t==='posts')loadSharedPosts();if(t==='safety')loadSafety();if(t==='friends'||t==='messages')loadFriends();if(t==='messages')location.hash='messages'}
-document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+function switchTab(t,scrollToContent=false){
+ const target=$(t);
+ if(!target||!target.classList.contains('tab'))return;
+ document.querySelectorAll('#app .tab').forEach(n=>n.classList.toggle('hidden',n!==target));
+ document.querySelectorAll('#app [data-tab]').forEach(n=>{
+  const selected=n.dataset.tab===t;
+  n.setAttribute('aria-pressed',String(selected));
+  n.classList.toggle('selected-tab',selected);
+ });
+ if(t==='people')loadPeople();
+ if(t==='follows')loadFollows();
+ if(t==='posts')loadSharedPosts();
+ if(t==='safety')loadSafety();
+ if(t==='friends'||t==='messages')loadFriends();
+ if(scrollToContent){
+  requestAnimationFrame(()=>{
+   target.scrollIntoView({behavior:'smooth',block:'start'});
+   const heading=target.querySelector('h2');
+   if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true})}
+  });
+ }
+}
+document.querySelectorAll('#app [data-tab]').forEach(b=>{
+ b.type='button';
+ b.addEventListener('click',()=>switchTab(b.dataset.tab,true));
+});
 
 $('followGate').classList.toggle('hidden',followsEnabled);$('followArea').classList.toggle('hidden',!followsEnabled);
 async function loadFollows(){if(!user||!followsEnabled||followBusy)return;const account=user.id;followBusy=true;$('followRefresh').disabled=true;$('followStatus').textContent='Loading follower records…';
