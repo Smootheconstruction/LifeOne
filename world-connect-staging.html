@@ -37,7 +37,7 @@ window.LIFEONE_SUPABASE_PUBLISHABLE_KEY=localStorage.getItem('nova_wc_staging_pu
 window.LIFEONE_FOLLOWS_ENABLED=false;
 window.LIFEONE_SAFETY_ENABLED=false;
 window.LIFEONE_SHARED_POSTS_ENABLED=false;
-window.LIFEONE_ACCESS_REQUESTS_ENABLED=false; // Keep OFF until staging-only SQL is installed and verified.
+window.LIFEONE_ACCESS_REQUESTS_ENABLED=true; // STAGING-ONLY access request queue installed by project owner; public Auth signup remains OFF.
 document.getElementById('testConfigForm').addEventListener('submit',e=>{
  e.preventDefault();
  const k=document.getElementById('testPublishableKey').value.trim();
