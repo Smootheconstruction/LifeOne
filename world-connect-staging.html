@@ -84,12 +84,12 @@ window.LIFEONE_ACCESS_REQUESTS_ENABLED=true; // STAGING-ONLY access request queu
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),status=s=>{$('status').textContent=s},el=(tag,txt,cls)=>{const n=document.createElement(tag);n.textContent=txt??'';if(cls)n.className=cls;return n},action=(name,fn)=>{const b=el('button',name,'secondary');b.onclick=fn;return b};
 const url=window.LIFEONE_SUPABASE_URL,key=window.LIFEONE_SUPABASE_PUBLISHABLE_KEY,ready=url?.startsWith('https://')&&key?.startsWith('sb_publishable_');
-let db,user,friend=null;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
+let db,user,friend=null;let activeSection='profile',messagePoll=null,messageLoading=false,messageSending=false;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
 const accessReady=window.LIFEONE_ACCESS_REQUESTS_ENABLED===true;
 document.getElementById('accessRequestSubmit').disabled=!accessReady;
 document.getElementById('accessRequestStatus').textContent=accessReady?'Registration requests are open for the private test. An administrator must approve and invite applicants.':'Registration requests are not enabled for this test yet.';
 if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);db.auth.onAuthStateChange((event,session)=>{const incoming=session?.user||null;if(incoming?.id!==user?.id)show(incoming);if(event==='PASSWORD_RECOVERY'||(incoming&&inviteCallback)){showSetPassword('Invitation or password link verified. Create your NOVA test password below.')}if(event==='SIGNED_OUT')status('Signed out.');});init()}
-function show(userNow){const changed=user?.id!==userNow?.id;user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
+function show(userNow){const changed=user?.id!==userNow?.id;if(changed)stopMessagePolling();user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
 $('accessRequestForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!ready||!accessReady||!db)return;
@@ -154,6 +154,7 @@ function switchTab(t,scrollToContent=false){
   n.setAttribute('aria-pressed',String(selected));
   n.classList.toggle('selected-tab',selected);
  });
+ activeSection=t; if(t==='messages')startMessagePolling();else stopMessagePolling();
  if(t==='people')loadPeople();
  if(t==='follows')loadFollows();
  if(t==='posts')loadSharedPosts();
@@ -255,11 +256,161 @@ $('profilePhoto').addEventListener('change',async e=>{
 $('removeProfilePhoto').addEventListener('click',()=>{if(!user)return;localStorage.removeItem(photoStoreKey());renderProfileIdentity();$('photoHint').textContent='Profile picture removed from this browser.'});
 async function loadProfile(){if(!user)return;const account=user.id;const {data,error}=await db.from('profiles').select('display_name,bio').eq('id',account).maybeSingle();if(!user||user.id!==account)return;if(error){$('profileSaveMessage').textContent='Could not load your profile. Please retry.';return}$('displayName').value=data?.display_name||'';$('bio').value=data?.bio||'';fillExtraFields(readExtras());renderProfileIdentity(data?.display_name,data?.bio)}
 $('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return;const account=user.id,name=$('displayName').value.trim(),bio=$('bio').value.trim();if(!name){$('profileSaveMessage').textContent='Enter a display name.';return}const extra=getExtraFields();if(extra.handle&&!/^[A-Za-z0-9_]{3,24}$/.test(extra.handle)){$('profileSaveMessage').textContent='Username must be 3–24 letters, numbers or underscores.';return}if(extra.website&&!/^https?:\/\//i.test(extra.website)){$('profileSaveMessage').textContent='Website must start with http:// or https://.';return}const button=$('profileForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.from('profiles').upsert({id:account,display_name:name,bio});if(!user||user.id!==account)return;if(error){$('profileSaveMessage').textContent='Could not save your profile. Please retry.';return}try{localStorage.setItem(accountLocalKey(),JSON.stringify(extra))}catch(e){$('profileSaveMessage').textContent='Name and bio saved; extra details could not be stored in this browser.';renderProfileIdentity(name,bio);return}renderProfileIdentity(name,bio);$('profileSaveMessage').textContent='Profile saved. Display name and bio are online in the test account; photo and extra details stay on this browser.';status('Your NOVA test profile was saved.')}catch(err){$('profileSaveMessage').textContent='Unable to save profile right now.'}finally{button.disabled=false}};
-async function loadPeople(){if(!user)return;const account=user.id;const root=$('peopleList');root.replaceChildren();const {data,error}=await db.from('profiles').select('id,display_name,bio').neq('id',account).limit(40);if(!user||user.id!==account)return;if(error)return status(error.message);for(const p of data||[]){const n=el('div','', 'item');n.append(el('strong',p.display_name),el('p',p.bio||''),action('Add friend',async function(){if(!user||user.id!==account)return;const button=this;button.disabled=true;button.textContent='Sending…';try{const {error}=await db.from('friend_requests').insert({sender_id:account,receiver_id:p.id});if(!user||user.id!==account)return;if(error){status(error.code==='23505'?'A friend request already exists.':error.message);button.disabled=false;button.textContent='Add friend';return}button.textContent='Request sent ✓';status('Friend request sent. They must accept before messaging.')}catch(e){if(user?.id===account){status('Unable to send request. Please retry.');button.disabled=false;button.textContent='Add friend'}}}));root.append(n)}if(!root.children.length)root.append(el('p','No explorers yet'))}
+// Accepted friends take precedence if two opposite-direction requests already exist.
+// This only deduplicates the display. Existing database rows are not deleted.
+const pairOther=(row,self)=>row.sender_id===self?row.receiver_id:row.sender_id;
+function groupFriendships(rows,self){
+ const grouped=new Map();
+ for(const row of rows||[]){
+  const other=pairOther(row,self);
+  if(!other||other===self)continue;
+  const group=grouped.get(other)||[];
+  group.push(row);grouped.set(other,group);
+ }
+ return grouped;
+}
+async function loadPeople(){
+ if(!user)return;
+ const account=user.id,root=$('peopleList');
+ const [{data:people,error:e1},{data:requests,error:e2}]=await Promise.all([
+  db.from('profiles').select('id,display_name,bio').neq('id',account).limit(40),
+  db.from('friend_requests').select('id,sender_id,receiver_id,status').or('sender_id.eq.'+account+',receiver_id.eq.'+account)
+ ]);
+ if(!user||user.id!==account)return;
+ if(e1||e2){status('Could not load explorers right now.');return}
+ root.replaceChildren();
+ const grouped=groupFriendships(requests,account);
+ for(const person of people||[]){
+  const n=el('div','','item'),records=grouped.get(person.id)||[];
+  const accepted=records.some(x=>x.status==='accepted');
+  const incoming=records.find(x=>x.status==='pending'&&x.receiver_id===account);
+  const pending=records.some(x=>x.status==='pending');
+  n.append(el('strong',person.display_name||'NOVA Explorer'),el('p',person.bio||''));
+  if(accepted)n.append(el('p','✓ Already friends'));
+  else if(incoming)n.append(action('Review request in Friends',()=>switchTab('friends',true)));
+  else if(pending)n.append(el('p','Friend request pending'));
+  else n.append(action('Add friend',async function(){
+   if(!user||user.id!==account||this.disabled)return;
+   const button=this;button.disabled=true;button.textContent='Checking…';
+   try{
+    // Recheck on tap: avoid duplicate and reverse-direction friend requests.
+    const {data:latest,error:checkError}=await db.from('friend_requests')
+     .select('id,status,sender_id,receiver_id').or('sender_id.eq.'+account+',receiver_id.eq.'+account);
+    if(!user||user.id!==account)return;
+    if(checkError){status('Could not verify friend requests. Try again.');button.disabled=false;button.textContent='Add friend';return}
+    const matching=(latest||[]).filter(x=>pairOther(x,account)===person.id);
+    if(matching.length){
+     button.textContent=matching.some(x=>x.status==='accepted')?'✓ Already friends':'Request already pending';
+     status('You already have a friendship or pending request with this person.');
+     return;
+    }
+    const {error}=await db.from('friend_requests').insert({sender_id:account,receiver_id:person.id});
+    if(!user||user.id!==account)return;
+    if(error){status('Could not send request. Please refresh and try again.');button.disabled=false;button.textContent='Add friend';return}
+    button.textContent='Request sent ✓';status('Friend request sent. They can accept it under Friends.');
+   }catch(e){if(user?.id===account){status('Unable to send request right now.');button.disabled=false;button.textContent='Add friend'}}
+  }));
+  root.append(n);
+ }
+ if(!root.children.length)root.append(el('p','No other explorers yet'));
+}
 $('refreshPeople').onclick=loadPeople;
-async function loadFriends(){if(!user)return;const account=user.id;const [{data:r,error:e1},{data:p,error:e2}]=await Promise.all([db.from('friend_requests').select('id,sender_id,receiver_id,status').or('sender_id.eq.'+user.id+',receiver_id.eq.'+user.id),db.from('profiles').select('id,display_name')]);if(!user||user.id!==account)return;if(e1||e2)return status((e1||e2).message);const names=new Map((p||[]).map(x=>[x.id,x.display_name]));$('heroFriendsCount').textContent=String((r||[]).filter(x=>x.status==='accepted').length);['requests','friendsList','chatFriends'].forEach(id=>$(id).replaceChildren());for(const x of r||[]){const other=x.sender_id===user.id?x.receiver_id:x.sender_id,name=names.get(other)||'Explorer';if(x.status==='accepted'){$('friendsList').append(el('div',name,'item'));$('chatFriends').append(action('Chat with '+name,()=>{friend=other;$('conversation').replaceChildren();$('sendForm').classList.add('hidden');$('chatTitle').textContent='Chat with '+name;loadMessages()}))}else if(x.status==='pending'){const item=el('div',name+' · '+(x.receiver_id===user.id?'incoming':'sent'),'item');if(x.receiver_id===user.id){item.append(action('Accept',async()=>{const {error}=await db.from('friend_requests').update({status:'accepted'}).eq('id',x.id);status(error?.message||'Accepted');loadFriends()}),action('Decline',async()=>{const {error}=await db.from('friend_requests').delete().eq('id',x.id);status(error?.message||'Declined');loadFriends()}))}$('requests').append(item)}}if(!$('chatFriends').children.length)$('chatFriends').append(el('p','No accepted friends yet. Send and accept a friend request first.'));if(!$('requests').children.length)$('requests').append(el('p','No friend requests.'));if(!$('friendsList').children.length)$('friendsList').append(el('p','No accepted friends yet.'));}
+async function loadFriends(){
+ if(!user)return;
+ const account=user.id;
+ const [{data:r,error:e1},{data:p,error:e2}]=await Promise.all([
+  db.from('friend_requests').select('id,sender_id,receiver_id,status').or('sender_id.eq.'+account+',receiver_id.eq.'+account),
+  db.from('profiles').select('id,display_name')
+ ]);
+ if(!user||user.id!==account)return;
+ if(e1||e2){status('Unable to load friends right now.');return}
+ const names=new Map((p||[]).map(x=>[x.id,x.display_name]));
+ const groups=groupFriendships(r,account);
+ const acceptedFriends=[...groups].filter(([,records])=>records.some(x=>x.status==='accepted'));
+ $('heroFriendsCount').textContent=String(acceptedFriends.length);
+ ['requests','friendsList','chatFriends'].forEach(id=>$(id).replaceChildren());
+ for(const [other,records] of groups){
+  const name=names.get(other)||'NOVA Explorer';
+  const accepted=records.some(x=>x.status==='accepted');
+  if(accepted){
+   $('friendsList').append(el('div',name,'item'));
+   $('chatFriends').append(action('Chat with '+name,()=>{
+    friend=other;$('conversation').replaceChildren();
+    $('sendForm').classList.add('hidden');
+    $('chatTitle').textContent='Chat with '+name;
+    loadMessages();
+   }));
+   continue;
+  }
+  const incoming=records.find(x=>x.status==='pending'&&x.receiver_id===account);
+  const pending=records.find(x=>x.status==='pending');
+  if(!pending)continue;
+  const item=el('div',name+' · '+(incoming?'incoming':'sent'),'item');
+  if(incoming){
+   item.append(action('Accept',async function(){
+    const button=this;button.disabled=true;
+    const {error}=await db.from('friend_requests').update({status:'accepted'})
+      .eq('id',incoming.id).eq('receiver_id',account).eq('status','pending');
+    status(error?'Could not accept. Refresh and retry.':'Friend request accepted.');
+    await loadFriends();
+   }),action('Decline',async function(){
+    const button=this;button.disabled=true;
+    const {error}=await db.from('friend_requests').delete().eq('id',incoming.id).eq('receiver_id',account);
+    status(error?'Could not decline. Refresh and retry.':'Friend request declined.');
+    await loadFriends();
+   }));
+  }
+  $('requests').append(item);
+ }
+ if(!$('chatFriends').children.length)$('chatFriends').append(el('p','No accepted friends yet. Send a request through Explore.'));
+ if(!$('requests').children.length)$('requests').append(el('p','No pending friend requests.'));
+ if(!$('friendsList').children.length)$('friendsList').append(el('p','No accepted friends yet.'));
+}
 $('refreshFriends').onclick=loadFriends;
-async function loadMessages(){if(!friend||!user)return;const requestedUser=user.id,requestedFriend=friend;const {data,error}=await db.from('direct_messages').select('sender_id,body,created_at').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+friend+'),and(sender_id.eq.'+friend+',recipient_id.eq.'+user.id+')').order('created_at').limit(100);if(!user||user.id!==requestedUser||friend!==requestedFriend)return;if(error)return status(error.message);$('conversation').replaceChildren(...(data||[]).map(m=>el('div',m.body,'bubble'+(m.sender_id===user.id?' mine':''))));$('sendForm').classList.remove('hidden')}
-$('refreshMessages').onclick=loadMessages;
-$('sendForm').onsubmit=async e=>{e.preventDefault();if(!friend||!user)return;const account=user.id,recipient=friend,v=$('message').value.trim();if(!v)return;const {error}=await db.from('direct_messages').insert({sender_id:account,recipient_id:recipient,body:v});if(!user||user.id!==account||friend!==recipient)return;if(error)return status(error.message);$('message').value='';await loadMessages()};
+function stopMessagePolling(){if(messagePoll){clearInterval(messagePoll);messagePoll=null}}
+function startMessagePolling(){
+ stopMessagePolling();
+ if(!user)return;
+ messagePoll=setInterval(()=>{
+  if(document.visibilityState==='visible'&&activeSection==='messages'&&friend&&user&&!messageLoading&&!messageSending)loadMessages(true);
+ },4000);
+}
+async function loadMessages(silent=false){
+ if(!friend||!user||messageLoading)return;
+ const requestedUser=user.id,requestedFriend=friend;
+ messageLoading=true;
+ try{
+  const {data,error}=await db.from('direct_messages')
+   .select('sender_id,body,created_at')
+   .or('and(sender_id.eq.'+requestedUser+',recipient_id.eq.'+requestedFriend+'),and(sender_id.eq.'+requestedFriend+',recipient_id.eq.'+requestedUser+')')
+   .order('created_at').limit(100);
+  if(!user||user.id!==requestedUser||friend!==requestedFriend)return;
+  if(error){if(!silent)status('Messages could not be refreshed.');return}
+  const root=$('conversation');
+  const existing=JSON.stringify([...root.children].map(el=>({body:el.textContent,mine:el.classList.contains('mine')})));
+  const next=JSON.stringify((data||[]).map(m=>({body:m.body,mine:m.sender_id===requestedUser})));
+  if(existing!==next){
+   root.replaceChildren(...(data||[]).map(m=>el('div',m.body,'bubble'+(m.sender_id===requestedUser?' mine':''))));
+  }
+  $('sendForm').classList.remove('hidden');
+ }catch(e){if(!silent)status('Could not load messages.')}
+ finally{messageLoading=false}
+}
+$('refreshMessages').onclick=()=>loadMessages();
+$('sendForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(messageSending||!friend||!user)return;
+ const account=user.id,recipient=friend,field=$('message'),value=field.value.trim();
+ if(!value)return;
+ const button=$('sendForm').querySelector('button[type="submit"],button');
+ messageSending=true;if(button)button.disabled=true;
+ try{
+  const {error}=await db.from('direct_messages').insert({sender_id:account,recipient_id:recipient,body:value});
+  if(!user||user.id!==account||friend!==recipient)return;
+  if(error){status('Message not sent. Please try again.');return}
+  field.value='';
+  await loadMessages();
+ }catch(e){status('Could not send message. Try again.')}
+ finally{messageSending=false;if(button)button.disabled=false}
+};
 </script></body></html>
