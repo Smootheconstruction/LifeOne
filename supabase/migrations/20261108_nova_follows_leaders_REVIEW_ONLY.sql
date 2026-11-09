@@ -4,6 +4,8 @@
 -- including public.user_blocks and its protected RLS policies.
 -- Do not activate follows until full RLS and two-user block/unblock tests pass.
 -- No public signup, leader awarding, paid subscriptions, or access to private data.
+-- Run manually on a staging Supabase instance AFTER reviewing the prerequisite.
+-- Verify the SECURITY DEFINER owner has the required RLS bypass and is trusted.
 
 -- Helper must be owned by a role with BYPASSRLS (e.g., postgres in SQL Editor)
 -- and reviewed prior to deployment. Returns true for any request where the caller
