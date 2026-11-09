@@ -12,7 +12,7 @@
 <li>Sign in to the NOVA Supabase project using your administrator account.</li>
 <li>Open <strong>Authentication → Users</strong>.</li>
 <li>Choose <strong>Invite user</strong> and enter your email address.</li>
-<li>Open the invitation email and follow the account setup link. If the invitation link does not open the right page, check the Auth redirect settings in Supabase.</li>
+<li>Open the invitation email and follow the account setup link. If the invitation opens NOVA, use the Set your NOVA test password form; if it only shows Sign In, enter the invited email and select Forgot password.</li>
 <li>Return to this World Connect page and use <strong>Sign in</strong>.</li>
 </ol>
 <p><a class="secondary" href="https://supabase.com/dashboard/project/ovchjguvyqaweuwliwyr/auth/users" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none;padding:12px;border-radius:12px;margin:8px 0">Open NOVA account setup ↗</a></p>
@@ -21,7 +21,7 @@
 <div id="inviteHelp" class="alert hidden" role="region" aria-label="Private beta invitation instructions" style="margin-top:12px">
 <p>Ask the NOVA administrator to invite your email address. Check your inbox and spam folder, accept the invitation and complete the account setup, then sign in above. Public self-registration isn't available during the private beta.</p>
 </div></div></section>
-<section id="passwordRecovery" class="card hidden"><h2>Set a new password</h2><p>Choose a new password for the invited account you are recovering.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button></form></section>
+<section id="passwordRecovery" class="card hidden"><h2>Set your NOVA test password</h2><p>If you arrived from an invitation or password reset, choose a password of at least 8 characters. This is for your NOVA test account only.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button></form></section>
 <section id="app" class="hidden"><div class="row"><span id="identity"></span><button class="secondary" id="testSetPassword" type="button">Set test password</button><button class="secondary" id="logout">Sign out</button></div><div class="card tabs"><button data-tab="profile">Profile</button><button data-tab="people">Explore</button><button data-tab="friends">Friends</button><button data-tab="follows">Followers &amp; Leaders</button><button data-tab="posts">Posts</button><button data-tab="safety">Safety</button><button data-tab="messages">Messages</button></div>
 <section class="card tab" id="profile"><h2>My profile</h2><form id="profileForm"><label>Nickname<input id="displayName" maxlength="40" required></label><label>About you<textarea id="bio" maxlength="180"></textarea></label><button>Save profile</button></form></section>
 <section class="card tab hidden" id="people"><h2>Discover explorers</h2><button class="secondary" id="refreshPeople">Refresh</button><div id="peopleList"></div></section>
@@ -49,22 +49,26 @@ document.getElementById('testConfigForm').addEventListener('submit',e=>{
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),status=s=>{$('status').textContent=s},el=(tag,txt,cls)=>{const n=document.createElement(tag);n.textContent=txt??'';if(cls)n.className=cls;return n},action=(name,fn)=>{const b=el('button',name,'secondary');b.onclick=fn;return b};
 const url=window.LIFEONE_SUPABASE_URL,key=window.LIFEONE_SUPABASE_PUBLISHABLE_KEY,ready=url?.startsWith('https://')&&key?.startsWith('sb_publishable_');
-let db,user,friend=null;const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
-if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);init()}
+let db,user,friend=null;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
+if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);db.auth.onAuthStateChange((event,session)=>{const incoming=session?.user||null;if(incoming?.id!==user?.id)show(incoming);if(event==='PASSWORD_RECOVERY'||(incoming&&inviteCallback)){showSetPassword('Invitation or password link verified. Create your NOVA test password below.')}if(event==='SIGNED_OUT')status('Signed out.');});init()}
 function show(userNow){const changed=user?.id!==userNow?.id;user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){switchTab(location.hash==='#messages'?'messages':'profile');loadProfile()}}
+function showSetPassword(message){$('passwordRecovery').classList.remove('hidden');$('login').classList.add('hidden');$('app').classList.add('hidden');status(message)}
 async function init(){
-  // Guests have no session; that is normal and should not display as an error.
-  try{
-    const {data,error}=await db.auth.getSession();
-    if(error){status('Unable to restore your session. Please sign in again.');show(null)}
-    else {show(data?.session?.user||null);if(!data?.session)status('Sign in with an invited World Connect account to use Messages.')}
-  }catch(e){show(null);status('Could not check sign-in status. Refresh and try again.')}
-  db.auth.onAuthStateChange((event,session)=>{
-    const incoming=session?.user||null;
-    if(incoming?.id!==user?.id)show(incoming);
-    if(event==='PASSWORD_RECOVERY'){$('passwordRecovery').classList.remove('hidden');$('login').classList.add('hidden');$('app').classList.add('hidden');status('Password recovery verified. Enter your new password below.');}
-    if(event==='SIGNED_OUT')status('Signed out.');
-  });
+ try{
+  const {data,error}=await db.auth.getSession();
+  if(error){show(null);status('Could not restore test session. Try your invitation or password-reset link again.');return}
+  show(data?.session?.user||null);
+  if(data?.session?.user&&inviteCallback){
+    showSetPassword('Your invitation has been verified. Create your NOVA test password below.');
+  }else if(!data?.session){
+    const parsed=new URLSearchParams(location.hash.replace(/^#/,''));
+    if(parsed.get('error_description')){
+      status('Invitation link error: '+parsed.get('error_description')+'. Request a new invitation or password reset.');
+    }else{
+      status('Sign in with your invited test account. If you have never created a password, enter your email and tap Forgot password.');
+    }
+  }
+ }catch(e){show(null);status('Unable to verify your test login. Refresh and retry the invitation link.')}
 }
 $('testSetPassword').addEventListener('click',()=>{$('passwordRecovery').classList.remove('hidden');$('app').classList.add('hidden');status('Set a password for this test account only.')});
 $('loginForm').onsubmit=async e=>{
@@ -82,7 +86,7 @@ $('loginForm').onsubmit=async e=>{
   }catch(e){status('Unable to connect to the sign-in service. Please try again.')}
   finally{if(submit)submit.disabled=false}
 };
-$('recoveryForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('recoveryForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.auth.updateUser({password:$('recoveryPassword').value});if(error){status('Could not set password: '+error.message);return}$('recoveryPassword').value='';$('passwordRecovery').classList.add('hidden');$('app').classList.remove('hidden');status('Password updated. Your account is signed in.')}catch(e){status('Unable to save password. Try again.')}finally{button.disabled=false}});
+$('recoveryForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('recoveryForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.auth.updateUser({password:$('recoveryPassword').value});if(error){status('Could not set password: '+error.message);return}$('recoveryPassword').value='';$('passwordRecovery').classList.add('hidden');$('app').classList.remove('hidden');status('Your NOVA test password is saved. You can now sign in with your invited email.');history.replaceState(null,'',location.pathname)}catch(e){status('Unable to save password. Try again.')}finally{button.disabled=false}});
 $('forgotPassword').addEventListener('click',async()=>{const email=$('email').value.trim();if(!email){status('Enter the email for your invited World Connect account first.');$('email').focus();return}if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){status('Enter a valid email address first.');return}const button=$('forgotPassword');button.disabled=true;status('Requesting a password-reset email…');try{const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/world-connect-staging.html'});status(error?'Password reset could not be sent: '+error.message:'If the email belongs to an existing account, check your inbox for a reset link. The account must already exist.')}catch(e){status('Unable to request password reset right now.')}finally{button.disabled=false}});
 $('signup').addEventListener('click',()=>{const panel=$('inviteHelp'),opening=panel.classList.contains('hidden');panel.classList.toggle('hidden',!opening);$('signup').setAttribute('aria-expanded',String(opening));status(opening?'Invitations are managed by the NOVA administrator. This page does not create accounts.':'Sign in if you already have an invited account.')});
 // Self-service signup is disabled in the private beta. Supabase Auth settings must also disable public signup.
