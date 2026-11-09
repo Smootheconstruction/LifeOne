@@ -74,8 +74,8 @@ create policy "Send only to accepted friends" on public.direct_messages
   with check(sender_id=(select auth.uid()) and exists(
     select 1 from public.friend_requests f
     where f.status='accepted'
-    and ((f.sender_id=sender_id and f.receiver_id=recipient_id)
-      or (f.receiver_id=sender_id and f.sender_id=recipient_id))
+    and ((f.sender_id=direct_messages.sender_id and f.receiver_id=direct_messages.recipient_id)
+      or (f.receiver_id=direct_messages.sender_id and f.sender_id=direct_messages.recipient_id))
   ));
 
 commit;
