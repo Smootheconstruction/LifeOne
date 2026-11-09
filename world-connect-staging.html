@@ -141,12 +141,12 @@ window.LIFEONE_ACCESS_REQUESTS_ENABLED=true; // STAGING-ONLY access request queu
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),status=s=>{$('status').textContent=s},el=(tag,txt,cls)=>{const n=document.createElement(tag);n.textContent=txt??'';if(cls)n.className=cls;return n},action=(name,fn)=>{const b=el('button',name,'secondary');b.onclick=fn;return b};
 const url=window.LIFEONE_SUPABASE_URL,key=window.LIFEONE_SUPABASE_PUBLISHABLE_KEY,ready=url?.startsWith('https://')&&key?.startsWith('sb_publishable_');
-let db,user,friend=null;let activeSection='profile',messagePoll=null,messageLoading=false,messageSending=false;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
+let db,user,friend=null;let activeSection='profile',messagePoll=null,messageLoading=false,messageSending=false,messageRefreshQueued=false,messageLoadVersion=0;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
 const accessReady=window.LIFEONE_ACCESS_REQUESTS_ENABLED===true;
 document.getElementById('accessRequestSubmit').disabled=!accessReady;
 document.getElementById('accessRequestStatus').textContent=accessReady?'Registration requests are open for the private test. An administrator must approve and invite applicants.':'Registration requests are not enabled for this test yet.';
 if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);db.auth.onAuthStateChange((event,session)=>{const incoming=session?.user||null;if(incoming?.id!==user?.id)show(incoming);if(event==='PASSWORD_RECOVERY'||(incoming&&inviteCallback)){showSetPassword('Invitation or password link verified. Create your NOVA test password below.')}if(event==='SIGNED_OUT')status('Signed out.');});init()}
-function show(userNow){const changed=user?.id!==userNow?.id;if(changed)stopMessagePolling();user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('chatPartnerAvatar').textContent='✦';$('chatSubtitle').textContent='Select a friend to start chatting';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
+function show(userNow){const changed=user?.id!==userNow?.id;if(changed){stopMessagePolling();messageLoadVersion++;messageRefreshQueued=false;}user=userNow;if(changed){friend=null;delete $('conversation').dataset.messageKeys;$('chatTitle').textContent='Choose a friend';$('chatPartnerAvatar').textContent='✦';$('chatSubtitle').textContent='Select a friend to start chatting';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('accessRequest').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){renderProfileIdentity();$('heroFriendsCount').textContent='—';switchTab(location.hash==='#messages'?'messages':'profile');loadProfile();loadFriends()}else{renderProfileIdentity()}}
 $('accessRequestForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!ready||!accessReady||!db)return;
@@ -485,7 +485,7 @@ async function loadFriends(){
    profileRow.addEventListener('click',()=>viewOtherProfile(other,'friends'));
    $('friendsList').append(profileRow);
    $('chatFriends').append(action('Chat with '+name,()=>{
-    friend=other;$('conversation').replaceChildren();
+    friend=other;messageLoadVersion++;messageRefreshQueued=false;$('conversation').replaceChildren();delete $('conversation').dataset.messageKeys;
     $('sendForm').classList.add('hidden');
     $('chatTitle').textContent=name;$('chatPartnerAvatar').textContent=(name.trim()[0]||'N').toUpperCase();$('chatSubtitle').textContent='Private conversation · NOVA World Connect';
     loadMessages();
@@ -526,29 +526,47 @@ function startMessagePolling(){
  },4000);
 }
 async function loadMessages(silent=false){
- if(!friend||!user||messageLoading)return;
- const requestedUser=user.id,requestedFriend=friend;
+ if(!friend||!user)return;
+ // A send or a manual refresh must not be lost to a background polling request.
+ if(messageLoading){if(!silent)messageRefreshQueued=true;return}
+ const requestedUser=user.id,requestedFriend=friend,version=messageLoadVersion;
  messageLoading=true;
  try{
+  // Get the most recent 100 messages (not the first 100 ever sent).
   const {data,error}=await db.from('direct_messages')
-   .select('sender_id,body,created_at')
+   .select('id,sender_id,body,created_at')
    .or('and(sender_id.eq.'+requestedUser+',recipient_id.eq.'+requestedFriend+'),and(sender_id.eq.'+requestedFriend+',recipient_id.eq.'+requestedUser+')')
-   .order('created_at').limit(100);
-  if(!user||user.id!==requestedUser||friend!==requestedFriend)return;
-  if(error){if(!silent)status('Messages could not be refreshed.');return}
-  const root=$('conversation');
-  const existing=JSON.stringify([...root.children].filter(n=>n.classList.contains('bubble')).map(el=>({body:el.querySelector('.nova-bubble-text')?.textContent||'',mine:el.classList.contains('mine')})));
-  const next=JSON.stringify((data||[]).map(m=>({body:m.body,mine:m.sender_id===requestedUser})));
-  if(existing!==next){
+   .order('created_at',{ascending:false}).limit(100);
+  if(!user||user.id!==requestedUser||friend!==requestedFriend||version!==messageLoadVersion)return;
+  if(error){if(!silent)status('Messages could not be refreshed. Tap ↻ to retry.');return}
+  const rows=(data||[]).slice().reverse(),root=$('conversation');
+  const oldKey=root.dataset.messageKeys||'';
+  const newKey=JSON.stringify(rows.map(m=>[m.id||null,m.sender_id,m.created_at,m.body]));
+  if(oldKey!==newKey){
+   const nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<75;
    const fragment=document.createDocumentFragment();
-   if(!(data||[]).length)fragment.append(el('p','✨ Say hello! Your conversation starts here.','nova-chat-empty'));
-   for(const m of data||[]){const bubble=el('div','','bubble'+(m.sender_id===requestedUser?' mine':''));bubble.append(el('span',m.body,'nova-bubble-text'));if(m.created_at){const d=new Date(m.created_at);if(!Number.isNaN(d.valueOf()))bubble.append(el('time',d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}),'nova-bubble-time'))}fragment.append(bubble)}
-   root.replaceChildren(fragment);
-   if(!silent)root.scrollTop=root.scrollHeight;
+   if(!rows.length)fragment.append(el('p','✨ Say hello! Your conversation starts here.','nova-chat-empty'));
+   for(const m of rows){
+    const bubble=el('div','','bubble'+(m.sender_id===requestedUser?' mine':''));
+    bubble.append(el('span',m.body,'nova-bubble-text'));
+    if(m.created_at){
+     const d=new Date(m.created_at);
+     if(!Number.isNaN(d.valueOf())){
+      const t=el('time',d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}),'nova-bubble-time');
+      t.dateTime=m.created_at;bubble.append(t)
+     }
+    }
+    fragment.append(bubble)
+   }
+   root.replaceChildren(fragment);root.dataset.messageKeys=newKey;
+   if(!silent||nearBottom)requestAnimationFrame(()=>{if(root.isConnected&&version===messageLoadVersion)root.scrollTop=root.scrollHeight});
   }
   $('sendForm').classList.remove('hidden');
- }catch(e){if(!silent)status('Could not load messages.')}
- finally{messageLoading=false}
+ }catch(e){if(!silent)status('Could not load messages. Tap ↻ to retry.')}
+ finally{
+  messageLoading=false;
+  if(messageRefreshQueued){messageRefreshQueued=false;if(user&&friend)loadMessages(false)}
+ }
 }
 $('refreshMessages').onclick=()=>loadMessages();
 document.querySelectorAll('[data-emoji]').forEach(button=>button.addEventListener('click',()=>{
@@ -568,9 +586,10 @@ $('sendForm').onsubmit=async e=>{
  try{
   const {error}=await db.from('direct_messages').insert({sender_id:account,recipient_id:recipient,body:value});
   if(!user||user.id!==account||friend!==recipient)return;
-  if(error){status('Message not sent. Please try again.');return}
+  if(error){status('Message not sent. Check your connection and retry.');return}
   field.value='';
-  await loadMessages();
+  messageRefreshQueued=true;
+  if(!messageLoading){messageRefreshQueued=false;await loadMessages(false)}
  }catch(e){status('Could not send message. Try again.')}
  finally{messageSending=false;if(button)button.disabled=false}
 };
