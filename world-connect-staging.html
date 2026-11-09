@@ -2,7 +2,7 @@
 :root{font:16px system-ui;color:#f1f4ff;background:#090e22}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#50349e70,transparent 42%),#090e22;min-height:100vh}main{max-width:800px;margin:auto;padding:24px 16px 80px}a{color:#84f1eb}h1{font-size:clamp(2rem,6vw,3.5rem);margin:.4em 0}p{color:#b5c3de;line-height:1.5}.card{border:1px solid #ffffff28;background:#18213ccc;border-radius:22px;padding:20px;margin:16px 0}input,textarea,button{font:inherit;border-radius:12px;padding:12px;min-height:44px}input,textarea{width:100%;background:#0c142d;border:1px solid #ffffff38;color:white}button{border:0;background:linear-gradient(110deg,#70eeeb,#a490ff);color:#06172a;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.secondary{color:white;border:1px solid #ffffff33;background:#ffffff19}.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.row>*{min-width:0}.hidden{display:none!important}.item{padding:14px;margin:10px 0;background:#ffffff0b;border-radius:12px}.bubble{margin:8px 0;padding:12px;border-radius:14px;background:#ffffff19;overflow-wrap:anywhere}.mine{margin-left:12%;background:#5555af8c}.tabs button{margin:3px}.alert{border-left:3px solid #7eeedc;padding:12px;color:#e4efff;background:#ffffff09}label{display:block;margin:12px 0}label input{margin-top:5px}#status{min-height:25px;color:#7df2e2}</style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
-<h2>🔐 Sign in to World Connect</h2><p>Have an account already? Sign in with your email and password. New here? Select <strong>Create account / Get invited</strong> below.</p>
+<h2>🔐 Sign in to World Connect</h2><p>Already invited and set your password? Sign in below. Otherwise, use Request NOVA Test Access to ask for an invitation.</p>
 <form id="loginForm"><label>Email<input id="email" type="email" autocomplete="email" required></label><label>Password<input id="password" type="password" minlength="8" autocomplete="current-password" required></label>
 <div class="row"><button type="submit">Sign in</button><button type="button" class="secondary" id="forgotPassword">Forgot password?</button></div></form>
 <div class="card" style="background:#101a32;margin:18px 0 0">
@@ -21,6 +21,7 @@
 <div id="inviteHelp" class="alert hidden" role="region" aria-label="Private beta invitation instructions" style="margin-top:12px">
 <p>Ask the NOVA administrator to invite your email address. Check your inbox and spam folder, accept the invitation and complete the account setup, then sign in above. Public self-registration isn't available during the private beta.</p>
 </div></div></section>
+<section id="accessRequest" class="card"><h2>🌎 Request NOVA Test Access</h2><p>New here? Request an invitation. A NOVA administrator reviews requests in Supabase and decides whether to invite you. Submitting this form does not create an account or guarantee approval.</p><form id="accessRequestForm"><label>Your name<input id="accessRequestName" required minlength="2" maxlength="70" autocomplete="name" placeholder="Your name"></label><label>Email for your invitation<input id="accessRequestEmail" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com"></label><label>Why do you want to test NOVA? (optional)<textarea id="accessRequestReason" maxlength="300" rows="2" placeholder="Tell us briefly"></textarea></label><button id="accessRequestSubmit" type="submit">Request an invitation</button></form><p id="accessRequestStatus" class="alert" role="status" aria-live="polite">Invitation requests are available only when the staging database queue has been enabled. We never ask for a password in this form.</p><p class="mini">Requests are reviewed manually. Don't include passwords, payment details, or sensitive information.</p></section>
 <section id="passwordRecovery" class="card hidden"><h2>Set your NOVA test password</h2><p>If you arrived from an invitation or password reset, choose a password of at least 8 characters. This is for your NOVA test account only.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button></form></section>
 <section id="app" class="hidden"><div class="row"><span id="identity"></span><button class="secondary" id="testSetPassword" type="button">Set test password</button><button class="secondary" id="logout">Sign out</button></div><div class="card tabs"><button data-tab="profile">Profile</button><button data-tab="people">Explore</button><button data-tab="friends">Friends</button><button data-tab="follows">Followers &amp; Leaders</button><button data-tab="posts">Posts</button><button data-tab="safety">Safety</button><button data-tab="messages">Messages</button></div>
 <section class="card tab" id="profile"><h2>My profile</h2><form id="profileForm"><label>Nickname<input id="displayName" maxlength="40" required></label><label>About you<textarea id="bio" maxlength="180"></textarea></label><button>Save profile</button></form></section>
@@ -36,6 +37,7 @@ window.LIFEONE_SUPABASE_PUBLISHABLE_KEY=localStorage.getItem('nova_wc_staging_pu
 window.LIFEONE_FOLLOWS_ENABLED=false;
 window.LIFEONE_SAFETY_ENABLED=false;
 window.LIFEONE_SHARED_POSTS_ENABLED=false;
+window.LIFEONE_ACCESS_REQUESTS_ENABLED=false; // Keep OFF until staging-only SQL is installed and verified.
 document.getElementById('testConfigForm').addEventListener('submit',e=>{
  e.preventDefault();
  const k=document.getElementById('testPublishableKey').value.trim();
@@ -50,8 +52,27 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),status=s=>{$('status').textContent=s},el=(tag,txt,cls)=>{const n=document.createElement(tag);n.textContent=txt??'';if(cls)n.className=cls;return n},action=(name,fn)=>{const b=el('button',name,'secondary');b.onclick=fn;return b};
 const url=window.LIFEONE_SUPABASE_URL,key=window.LIFEONE_SUPABASE_PUBLISHABLE_KEY,ready=url?.startsWith('https://')&&key?.startsWith('sb_publishable_');
 let db,user,friend=null;const inviteCallback=/([#?&])type=(invite|recovery)([&#]|$)/.test(location.href);const followsEnabled=window.LIFEONE_FOLLOWS_ENABLED===true,safetyEnabled=window.LIFEONE_SAFETY_ENABLED===true,sharedPostsEnabled=window.LIFEONE_SHARED_POSTS_ENABLED===true;let followBusy=false;
+const accessReady=window.LIFEONE_ACCESS_REQUESTS_ENABLED===true;
+document.getElementById('accessRequestSubmit').disabled=!accessReady;
+if(!accessReady)document.getElementById('accessRequestStatus').textContent='Registration requests are being prepared for the test database. Existing invited users can still sign in.';
 if(!ready){$('setup').classList.remove('hidden')}else{db=createClient(url,key);db.auth.onAuthStateChange((event,session)=>{const incoming=session?.user||null;if(incoming?.id!==user?.id)show(incoming);if(event==='PASSWORD_RECOVERY'||(incoming&&inviteCallback)){showSetPassword('Invitation or password link verified. Create your NOVA test password below.')}if(event==='SIGNED_OUT')status('Signed out.');});init()}
 function show(userNow){const changed=user?.id!==userNow?.id;user=userNow;if(changed){friend=null;$('chatTitle').textContent='Choose a friend';$('sendForm').classList.add('hidden');['conversation','peopleList','requests','friendsList','chatFriends','followDiscover','followFollowing','followFollowers','mySharedPosts','sharedDiscoverPosts','safetyBlocked'].forEach(id=>$(id).replaceChildren());$('safetyPerson').replaceChildren(new Option('Select an account',''));$('safetyStatus').textContent='';$('sharedPostsStatus').textContent='';$('realFollowers').textContent='0';$('realFollowing').textContent='0';$('realLeader').textContent='Not earned';$('displayName').value='';$('bio').value='';$('message').value=''}$('login').classList.toggle('hidden',!!user);$('app').classList.toggle('hidden',!user);$('identity').textContent=user?.email||'';if(user){switchTab(location.hash==='#messages'?'messages':'profile');loadProfile()}}
+$('accessRequestForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!ready||!accessReady||!db)return;
+ const button=$('accessRequestSubmit');
+ const name=$('accessRequestName').value.trim(),email=$('accessRequestEmail').value.trim().toLowerCase(),reason=$('accessRequestReason').value.trim();
+ if(name.length<2||!email.includes('@')){ $('accessRequestStatus').textContent='Enter a valid name and email address.';return}
+ button.disabled=true;
+ $('accessRequestStatus').textContent='Submitting your request…';
+ try{
+  const {error}=await db.from('nova_access_requests').insert({display_name:name,email,reason});
+  if(error){$('accessRequestStatus').textContent='Request could not be sent. Check the email or try again later.';return}
+  $('accessRequestForm').reset();
+  $('accessRequestStatus').textContent='Request submitted for administrator review. If approved, you will receive an invitation email. No account has been created yet.';
+ }catch(err){$('accessRequestStatus').textContent='Unable to reach the request service right now.'}
+ finally{button.disabled=false}
+});
 function showSetPassword(message){$('passwordRecovery').classList.remove('hidden');$('login').classList.add('hidden');$('app').classList.add('hidden');status(message)}
 async function init(){
  try{
