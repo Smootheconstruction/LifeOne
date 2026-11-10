@@ -351,10 +351,10 @@ async function loadOtherPosts(other,account){
  message.textContent='Loading approved shared posts…';
  try{
   // Deliberately request only approved, discoverable posts; RLS remains authoritative.
-  const {data,error}=await db.from('nova_posts').select('id,body,created_at').eq('author_id',other).eq('status','approved').eq('visibility','public').order('created_at',{ascending:false}).limit(36);
+  const {data,error}=await db.from('nova_posts').select('id,body,created_at').eq('author_id',other).eq('status','approved').order('created_at',{ascending:false}).limit(36);
   if(!user||user.id!==account||$('otherProfile').dataset.person!==other)return;
   if(error){message.textContent='Posts cannot be loaded with the current private-beta permissions.';return}
-  message.textContent=(data||[]).length?'Approved shared posts from this explorer.':'No approved shared posts from this explorer yet.';
+  message.textContent=(data||[]).length?'Approved posts visible to you from this explorer.':'No approved posts visible to you from this explorer yet.';
   for(const post of data||[]){
    const tile=el('div','','nova-post-tile nova-friend-post-tile');tile.append(el('span','✦','nova-post-art'),el('span',post.body||'Post','nova-post-caption'));root.append(tile);
   }
