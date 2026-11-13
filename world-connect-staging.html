@@ -111,6 +111,7 @@
 #profile .nova-post-detail img{width:100%;max-height:580px;object-fit:contain;border-radius:12px;margin:14px 0;background:#0a1225}
 #profile #novaPostDetailText{font-size:16px;font-weight:650;color:#f0f5ff;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px 0}
 @media(max-width:550px){#profile #novaMyPostGrid{gap:6px}#profile .nova-post-tile{border-radius:10px}#profile .nova-post-caption{font-size:10px;padding:25px 7px 9px;-webkit-line-clamp:2}#profile .nova-post-date{display:none}#profile .nova-post-kind{top:6px;left:6px;padding:3px 5px;font-size:8px}}
+#novaPrivatePostForm{scroll-margin-top:26px}#novaPrivatePostForm textarea:focus-visible{outline:3px solid #8cf5e7;outline-offset:3px}
 </style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
@@ -306,7 +307,7 @@ function renderMyPrivatePosts(){
  if($('novaPrivateFeed'))renderPrivateFeed();
  const root=$('novaMyPostGrid');root.replaceChildren();selectedPrivatePost=null;$('novaPostDetail').classList.add('hidden');if(!user)return;
  const posts=readPrivatePosts();$('novaPostCount').textContent=posts.length+' post'+(posts.length===1?'':'s');
- if(!posts.length){const empty=el('div','','nova-post-empty');empty.append(el('span','▦'),el('strong','Your story starts here'),el('p','Your photos and posts will appear here.'));empty.append(action('＋ First post',()=>switchTab('posts',true)));root.append(empty);return}
+ if(!posts.length){const empty=el('div','','nova-post-empty');empty.append(el('span','▦'),el('strong','Your story starts here'),el('p','Your photos and posts will appear here.'));empty.append(action('＋ First post',openPostComposer));root.append(empty);return}
  for(const p of posts){
   const tile=el('button','','nova-post-tile');tile.type='button';tile.setAttribute('aria-label','View post: '+p.text.slice(0,90));
   if(typeof p.photo==='string'&&/^data:image\/jpeg;base64,/.test(p.photo)&&p.photo.length<180000){const img=document.createElement('img');img.src=p.photo;img.alt='Private post';img.loading='lazy';tile.append(img)}else tile.append(el('span','✦','nova-post-art'));
@@ -323,7 +324,18 @@ function renderMyPrivatePosts(){
 }
 $('novaClosePost').addEventListener('click',()=>{$('novaPostDetail').classList.add('hidden');selectedPrivatePost=null});
 $('novaDeletePost').addEventListener('click',()=>{if(!user||!selectedPrivatePost)return;try{localStorage.setItem(privatePostKey(),JSON.stringify(readPrivatePosts().filter(p=>p.id!==selectedPrivatePost)));renderMyPrivatePosts()}catch(e){status('Could not delete private post.')}});
-$('profileCreatePost').addEventListener('click',()=>switchTab('posts',true));
+function openPostComposer(){
+ switchTab('posts',false);
+ const form=$('novaPrivatePostForm');
+ if(!form)return;
+ const composer=form.closest('.card')||form;
+ requestAnimationFrame(()=>{
+  composer.scrollIntoView({behavior:'smooth',block:'start'});
+  const field=$('novaPrivatePostText');
+  if(field)field.focus({preventScroll:true});
+ });
+}
+$('profileCreatePost').addEventListener('click',openPostComposer);
 const sampleFeed=[
  {name:'NOVA Music World',handle:'@musicworld',icon:'🎵',headline:'Discover music without borders',caption:'Original music and creators from every part of the world. 🎶',tag:'Music'},
  {name:'NOVA Creators',handle:'@creators',icon:'🛠️',headline:'Show what you can build',caption:'Your craft deserves a stage. Share your creativity and skills. ✨',tag:'Creators'},
