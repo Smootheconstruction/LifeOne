@@ -72,6 +72,26 @@
 .nova-chat-privacy{font-size:11px!important;margin:12px 6px 4px!important;color:#abbdd9}
 .nova-friend-open{width:100%;text-align:left;color:#eef5ff;background:#ffffff0b;border:1px solid #ffffff15;min-height:60px;cursor:pointer}.nova-friend-open:focus-visible{outline:2px solid #8aece8;outline-offset:2px}.nova-friend-open:active{background:#384978}.nova-friend-open strong{flex:1}.nova-friend-chevron{font-size:28px;color:#98efe8;margin-left:auto}.nova-friend-post-tile{display:flex;align-items:center;justify-content:center}.nova-friend-post-tile .nova-post-art{height:auto}
 .nova-signed-account{display:flex;align-items:center;gap:9px;min-width:0}.nova-signed-account strong{display:block;font-size:13px}.nova-signed-avatar{width:35px;height:35px;border-radius:50%;background:linear-gradient(120deg,#78ede8,#a68bff);color:#17203f;font-weight:900;display:grid;place-items:center;flex-shrink:0}.nova-signed-account small{font-size:11px}
+
+/* Social-style cards, distinctly marked as demos or device-only posts. */
+#posts .nova-for-you-feed{display:flex;flex-direction:column;gap:17px;max-width:610px;margin:17px auto}
+.nova-social-post{background:#121c36;border:1px solid #ffffff29;border-radius:21px;overflow:hidden;box-shadow:0 14px 34px #0003}
+.nova-social-post-head{padding:13px 14px;display:flex;gap:11px;align-items:center}
+.nova-social-post-avatar{height:44px;width:44px;border-radius:50%;display:grid;place-items:center;flex:none;background:linear-gradient(130deg,#a585fa,#64eee0);color:#151a39;font-size:17px;font-weight:900;overflow:hidden}
+.nova-social-post-avatar img{height:100%;width:100%;object-fit:cover}
+.nova-social-post-author{flex:1;min-width:0}.nova-social-post-author strong{display:block;font-size:14px;color:#fff}.nova-social-post-author small{display:block;font-size:11px;color:#aebddb;margin-top:3px}
+.nova-social-post-tag{font-size:10px;color:#a5eee5;background:#164653;border:1px solid #66e1d355;border-radius:30px;padding:5px 8px;white-space:nowrap}
+.nova-social-post-media{min-height:220px;aspect-ratio:5/3;display:grid;place-items:center;position:relative;background:radial-gradient(circle at 28% 20%,#a687fb,transparent 35%),linear-gradient(130deg,#27337a,#0c6375)}
+.nova-social-post-media img{width:100%;height:100%;max-height:470px;object-fit:contain;background:#0a1126;position:absolute;inset:0}
+.nova-social-post-art{font-size:70px;filter:drop-shadow(0 10px 20px #0004)}
+.nova-social-post-controls{display:flex;gap:5px;padding:9px 12px 0;flex-wrap:wrap}
+.nova-social-post-controls button{background:none;border:0;color:#dfebff;padding:9px 12px;border-radius:10px;font-size:12px;min-height:40px}
+.nova-social-post-controls button:not(:disabled):hover,.nova-social-post-controls button[aria-pressed="true"]{background:#34436f;color:#9ff7e7}
+.nova-social-post-controls button:disabled{opacity:.55;cursor:not-allowed}
+.nova-social-post-caption{padding:7px 17px 14px;white-space:pre-wrap;color:#e8eeff;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.nova-social-post-caption strong{color:#91e9ed}
+.nova-social-post-footer{padding:0 17px 14px;color:#9aafcb;font-size:11px}
+@media(max-width:520px){#posts .nova-for-you-feed{max-width:100%}.nova-social-post-media{min-height:190px}.nova-social-post-tag{max-width:98px;text-overflow:ellipsis;overflow:hidden}}
 </style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
@@ -117,7 +137,7 @@
 <section class="card tab hidden" id="people"><h2>Discover explorers</h2><p class="nova-profile-hint">Tap View Profile to see another explorer’s name and bio.</p><button class="secondary" id="refreshPeople">Refresh</button><div id="peopleList"></div></section>
 <section class="card tab hidden" id="friends"><h2>♡ My Friends</h2><p class="nova-profile-hint">Your accepted NOVA friends are listed here.</p><button class="secondary" id="refreshFriends" type="button">Refresh friends</button><div id="friendsList"></div><div id="pendingFriendSection" class="hidden"><h3>Pending friend requests</h3><div id="requests"></div></div></section>
 <section class="card tab hidden" id="follows"><h2>🌟 Followers &amp; Leaders</h2><p>Follow people at no cost; leadership is earned, and NOVA Pro is separate.</p><p id="followGate" class="alert">Real Follow / Following is the next security-gated feature. You can view your friends’ online profiles now. Follows will be enabled after the separate staging permissions and block tests pass.</p><div id="followArea" class="hidden"><div class="row"><div class="item"><strong id="realFollowers">0</strong> Followers</div><div class="item"><strong id="realFollowing">0</strong> Following</div></div><p id="followStatus" role="status" aria-live="polite"></p><button type="button" class="secondary" id="followRefresh">Refresh</button><h3>Discover profiles</h3><div id="followDiscover"></div><h3>Following</h3><div id="followFollowing"></div><h3>Followers</h3><div id="followFollowers"></div><div class="card"><h3>👑 Earned NOVA Leader</h3><p id="realLeader">Not earned</p><p>Requires authentic contributions, positive conduct and human review. It cannot be purchased.</p></div><div class="card"><h3>💎 NOVA Pro</h3><p>Future optional creator and business tools. No pricing, checkout or payment processing is active, and Pro never grants Leader recognition.</p></div></div></section><section class="card tab hidden" id="posts"><h2>✦ For You</h2><p>Discover stories, creators and ideas around NOVA. These cards are examples while shared posting is still being tested.</p>
-<div class="nova-for-you-feed" id="novaForYouExamples"></div>
+<div class="nova-for-you-feed" id="novaForYouExamples"></div><h3 style="margin:24px 2px 10px">✦ Your private posts</h3><p class="nova-profile-hint">These posts are visible only in this browser. They are not shared with other NOVA accounts.</p><div id="novaPrivateFeed" class="nova-for-you-feed"></div>
 <div class="card"><h3>＋ Make a private post</h3><p class="nova-profile-hint">A photo or written post you create here appears on your profile grid, on this browser only. No public upload yet.</p>
 <form id="novaPrivatePostForm"><label for="novaPrivatePostText">Caption<textarea id="novaPrivatePostText" rows="3" maxlength="500" required placeholder="Share your story, music, work or inspiration..."></textarea></label><label for="novaPrivatePostPhoto">Photo (optional)<input id="novaPrivatePostPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="nova-profile-hint">JPG, PNG, or WebP up to 3 MB. Videos and public posts require later security testing.</p><button id="novaPrivatePostSave" type="submit">Save to my private posts</button><p id="novaPrivatePostStatus" role="status" aria-live="polite"></p></form></div>
 <div class="nova-shared-future"><h3>Public posts — future beta</h3><p>Future account-connected posting for approved beta members. This is separate from the device-only Universe Feed.</p><p id="sharedPostsGate" class="alert">Shared posts are disabled until the database migration, moderation procedures and access tests are verified. Photos and videos are not uploaded here.</p></div><div id="sharedPostsArea" class="hidden"><form id="sharedPostForm"><label>Your post<textarea id="sharedPostBody" maxlength="750" required placeholder="Share something useful with your universe"></textarea></label><label>Who should be able to see approved posts?<select id="sharedPostVisibility"><option value="only_me">Only me</option><option value="followers">Followers</option><option value="public">All invited NOVA beta members</option></select></label><p class="alert">Submitted posts are pending human moderation. No immediate publication or media upload.</p><button type="submit">Submit for review</button></form><p id="sharedPostsStatus" role="status" aria-live="polite"></p><h3>My submitted posts</h3><div id="mySharedPosts"></div><h3>Approved discovery posts</h3><div id="sharedDiscoverPosts"></div><button type="button" class="secondary" id="sharedPostsRefresh">Refresh posts</button></div></section>
@@ -265,6 +285,7 @@ const privatePostKey=()=>user?.id?'nova_private_profile_posts_v1_'+user.id:'';
 let selectedPrivatePost=null;
 function readPrivatePosts(){if(!user)return [];try{const rows=JSON.parse(localStorage.getItem(privatePostKey())||'[]');return Array.isArray(rows)?rows.filter(p=>p&&typeof p.id==='string'&&typeof p.text==='string').slice(0,12):[]}catch(e){return []}}
 function renderMyPrivatePosts(){
+ if($('novaPrivateFeed'))renderPrivateFeed();
  const root=$('novaMyPostGrid');root.replaceChildren();selectedPrivatePost=null;$('novaPostDetail').classList.add('hidden');if(!user)return;
  const posts=readPrivatePosts();
  if(!posts.length){const empty=el('div','','nova-post-empty');empty.append(el('span','▦'),el('strong','Your story starts here'),el('p','Your photos and posts will appear here.'));empty.append(action('＋ First post',()=>switchTab('posts',true)));root.append(empty);return}
@@ -283,8 +304,51 @@ function renderMyPrivatePosts(){
 $('novaClosePost').addEventListener('click',()=>{$('novaPostDetail').classList.add('hidden');selectedPrivatePost=null});
 $('novaDeletePost').addEventListener('click',()=>{if(!user||!selectedPrivatePost)return;try{localStorage.setItem(privatePostKey(),JSON.stringify(readPrivatePosts().filter(p=>p.id!==selectedPrivatePost)));renderMyPrivatePosts()}catch(e){status('Could not delete private post.')}});
 $('profileCreatePost').addEventListener('click',()=>switchTab('posts',true));
-const sampleFeed=[['🎶 Music World','Discover music without borders','Original music and creators from every part of the world.'],['🛠️ Skilled Creators','Show what you can build','Share your expertise, craft and brilliant ideas.'],['📚 NOVA Learning','Something new every day','Explore new skills, cultures and inspiration.'],['🌎 Community','Meet people across the world','Make meaningful connections in our private beta.']];
-function renderForYou(){const root=$('novaForYouExamples');if(root.children.length)return;for(const [label,title,description] of sampleFeed){const card=el('article','','nova-for-you-card');card.append(el('span',label,'nova-sample-category'),el('strong',title),el('p',description),el('small','Sample · Not a real user post'));root.append(card)}}
+const sampleFeed=[
+ {name:'NOVA Music World',handle:'@musicworld',icon:'🎵',headline:'Discover music without borders',caption:'Original music and creators from every part of the world. 🎶',tag:'Music'},
+ {name:'NOVA Creators',handle:'@creators',icon:'🛠️',headline:'Show what you can build',caption:'Your craft deserves a stage. Share your creativity and skills. ✨',tag:'Creators'},
+ {name:'NOVA Academy',handle:'@learning',icon:'📚',headline:'Learn something new',caption:'Explore new skills, cultures and ideas, one discovery at a time. 🌎',tag:'Learning'},
+ {name:'NOVA Community',handle:'@community',icon:'🌐',headline:'One World. One Connection.',caption:'Build meaningful connections in our private beta.',tag:'Community'}
+];
+function socialPostCard({name,handle,initial,caption,tag,photo='',art='✦',sample=false,postId=null}){
+ const card=el('article','','nova-social-post'),head=el('div','','nova-social-post-head'),avatar=el('span',initial||'N','nova-social-post-avatar'),person=el('div','','nova-social-post-author');
+ if(photo&&/^data:image\/jpeg;base64,/.test(photo)&&photo.length<180000){const img=document.createElement('img');img.src=photo;img.alt='Post image';avatar.textContent=''; /* do not use the post image as a fake profile picture */ avatar.textContent=initial||'N'}
+ person.append(el('strong',name),el('small',handle));
+ head.append(avatar,person,el('span',tag,'nova-social-post-tag'));card.append(head);
+ const media=el('div','','nova-social-post-media');
+ if(photo&&/^data:image\/jpeg;base64,/.test(photo)&&photo.length<180000){const img=document.createElement('img');img.src=photo;img.alt='Photo attached to '+name+' post';img.loading='lazy';media.append(img)}
+ else media.append(el('span',art,'nova-social-post-art'));
+ card.append(media);
+ const controls=el('div','','nova-social-post-controls');
+ const privateKey=(type)=>user?.id?'nova_post_'+type+'_v1_'+user.id+'_'+postId:'';
+ for(const [label,type] of [['♡ Like','like'],['💬 Comment','comment'],['↗ Share','share'],['🔖 Save','save']]){
+  const b=el('button',label);b.type='button';
+  if(sample||type==='comment'||type==='share'){b.disabled=true;b.title=sample?'Demo post — interactions not active':'Comments and public sharing are not available for private drafts'}
+  else {
+   const key=privateKey(type);
+   const update=()=>{const on=localStorage.getItem(key)==='1';b.setAttribute('aria-pressed',String(on));b.textContent=type==='like'?(on?'♥ Liked':'♡ Like'):(on?'✓ Saved':'🔖 Save')};
+   b.onclick=()=>{try{const on=localStorage.getItem(key)==='1';localStorage.setItem(key,on?'0':'1');update()}catch(e){status('Could not update local post reaction.')}};update()
+  }
+  controls.append(b)
+ }
+ card.append(controls);
+ const cp=el('div','','nova-social-post-caption');
+ const author=el('strong',name+'  ');cp.append(author,document.createTextNode(caption));card.append(cp);
+ card.append(el('div',sample?'✦ Sample preview · Not a real person or public post':'🔒 Only on this device · Not published','nova-social-post-footer'));
+ return card
+}
+function renderForYou(){
+ const root=$('novaForYouExamples');root.replaceChildren();
+ for(const s of sampleFeed)root.append(socialPostCard({name:s.name,handle:s.handle,initial:'N',caption:s.caption,tag:'✦ '+s.tag,art:s.icon,sample:true}));
+ renderPrivateFeed()
+}
+function renderPrivateFeed(){
+ const root=$('novaPrivateFeed');root.replaceChildren();if(!user)return;
+ const posts=readPrivatePosts();
+ if(!posts.length){root.append(el('p','No private posts yet. Create your first photo or text post below.'));return}
+ const name=$('heroName').textContent||'NOVA Explorer',handle=$('heroHandle').textContent||'@explorer';
+ for(const p of posts)root.append(socialPostCard({name,handle,initial:name.charAt(0).toUpperCase(),caption:p.text,tag:'🔒 Private',photo:p.photo||'',art:'✦',postId:p.id}))
+}
 $('novaPrivatePostForm').addEventListener('submit',async e=>{
  e.preventDefault();if(!user)return;
  const account=user.id,button=$('novaPrivatePostSave'),text=$('novaPrivatePostText').value.trim(),file=$('novaPrivatePostPhoto').files?.[0];
