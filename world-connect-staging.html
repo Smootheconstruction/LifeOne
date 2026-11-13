@@ -363,16 +363,35 @@ function socialPostCard({name,handle,initial,caption,tag,photo='',art='✦',samp
     if(opening)renderComments();
    }
   }else if(type==='share'){
-   b.title='Explicitly share the text caption outside NOVA; no automatic publication';
+   b.title=safePhoto?'Share photo and caption using your device':'Share the text caption using your device';
    b.onclick=async()=>{
     if(user?.id!==ownerId)return;
-    const promptText='Share only the text of this private draft outside NOVA? Its photo and local comments will NOT be included.';
-    if(!window.confirm(promptText))return;
+    if(!window.confirm(safePhoto?'Share this private post’s PHOTO and caption outside NOVA? Nothing is published inside NOVA automatically.':'Share this private text post outside NOVA? Nothing is published inside NOVA automatically.'))return;
     try{
-     if(navigator.share){await navigator.share({title:'NOVA post from '+name,text:caption});footer.textContent='Share sheet opened. NOVA did not publish your post.'}
-     else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(caption);footer.textContent='Caption copied. Paste it wherever you choose; photo not included.'}
-     else footer.textContent='Sharing is not supported by this browser.';
-    }catch(err){if(err?.name!=='AbortError')footer.textContent='Could not share this caption.'}
+     if(safePhoto){
+      const response=await fetch(photo);
+      const blob=await response.blob();
+      const file=new File([blob],'nova-post-photo.jpg',{type:'image/jpeg'});
+      if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]})){
+       await navigator.share({files:[file],title:'NOVA post from '+name,text:caption});
+       footer.textContent='Photo and caption sent to the device sharing menu. NOVA did not publish this post.';
+      }else{
+       const url=URL.createObjectURL(blob);
+       const link=document.createElement('a');link.href=url;link.download='nova-post-photo.jpg';document.body.append(link);link.click();link.remove();
+       setTimeout(()=>URL.revokeObjectURL(url),60000);
+       if(navigator.clipboard?.writeText){
+        try{await navigator.clipboard.writeText(caption);footer.textContent='Photo downloaded and caption copied. Attach the photo and paste the caption in your chosen app.'}
+        catch(err){footer.textContent='Photo downloaded. Copy your caption manually to share it with the photo.'}
+       }else footer.textContent='Photo downloaded. Copy the caption manually and attach the photo in your chosen app.';
+      }
+     }else if(typeof navigator.share==='function'){
+      await navigator.share({title:'NOVA post from '+name,text:caption});
+      footer.textContent='Text sent to your device sharing menu. NOVA did not publish this post.';
+     }else if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(caption);
+      footer.textContent='Caption copied. Paste it into your chosen app.';
+     }else footer.textContent='Sharing is not supported by this browser.';
+    }catch(err){if(err?.name!=='AbortError')footer.textContent='Could not share this post. Try your browser’s share controls or download the photo.'}
    };
   }else {
    const key=privateKey(type);
