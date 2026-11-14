@@ -465,7 +465,6 @@ function socialPostCard({name,handle,initial,caption,tag,photo='',art='✦',samp
     outside.onclick=async()=>{
      dismiss();
      if(!window.confirm(safePhoto?'Share this private post’s PHOTO and caption outside NOVA? Nothing is published inside NOVA automatically.':'Share this private text post outside NOVA? Nothing is published inside NOVA automatically.'))return;
-'Share this private post’s PHOTO and caption outside NOVA? Nothing is published inside NOVA automatically.':'Share this private text post outside NOVA? Nothing is published inside NOVA automatically.'))return;
     try{
      if(safePhoto){
       const response=await fetch(photo);
@@ -535,7 +534,7 @@ $('novaPrivatePostForm').addEventListener('submit',async e=>{
    const side=Math.min(img.naturalWidth,img.naturalHeight),canvas=document.createElement('canvas');canvas.width=300;canvas.height=300;canvas.getContext('2d').drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,300,300);photo=canvas.toDataURL('image/jpeg',.5);if(photo.length>180000)throw Error('Photo too large');
   }
   if(user?.id!==account)return;
-  const records=readPrivatePosts();localStorage.setItem(privatePostKey(),JSON.stringify([{id:String(Date.now())+'-'+Math.random().toString(36).slice(2),text:text.slice(0,500),photo},...records])));
+  const records=readPrivatePosts();localStorage.setItem(privatePostKey(),JSON.stringify([{id:String(Date.now())+'-'+Math.random().toString(36).slice(2),text:text.slice(0,500),photo},...records]));
   $('novaPrivatePostForm').reset();closePostComposer();renderMyPrivatePosts();renderPrivateFeed();$('novaPrivatePostStatus').textContent='Saved to profile and For You preview on this device.';status('Your post now appears on your profile and in your For You preview.');
  }catch(e){$('novaPrivatePostStatus').textContent='Could not save post. Use a smaller photo or free some browser storage.'}finally{button.disabled=false}
 });
