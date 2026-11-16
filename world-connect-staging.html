@@ -124,7 +124,7 @@
 .nova-composing{overflow:hidden}
 #novaPrivatePostForm button[type="submit"]{width:100%;font-weight:900}
 @media(max-width:540px){.nova-compose-window{max-height:94dvh;padding:12px;border-radius:17px}.nova-compose-window>.card{padding:7px}.nova-for-you-head .nova-post-primary{align-self:center}}
-</style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><div id="status" role="status" aria-live="polite"></div>
+</style></head><body><main><a href="/world-connect.html">← LifeOne NOVA</a><p>🧪 STAGING ONLY · NOT LIVE NOVA</p><h1>World Connect — Test Login</h1><p><a href="#messages" id="messagesShortcut">💬 Messages (signed-in friends only)</a></p><p>Private test login connected only to NOVA-WorldConnect-Test. No production data or accounts are used here.</p><p class="alert"><strong>Sign-in tip:</strong> Use the same NOVA test website each time. Different temporary Vercel preview addresses can have separate browser sessions, even when the account password is unchanged. Profile photos and extra profile fields are currently device-only.</p><div id="status" role="status" aria-live="polite"></div>
 <section id="setup" class="card hidden"><h2>One-time test login setup</h2><p>Open NOVA-WorldConnect-Test → Project Settings → API Keys and copy ONLY the <strong>publishable</strong> key. Do not use a secret/service_role key or database password.</p><form id="testConfigForm"><label>Test publishable key<input id="testPublishableKey" type="password" required autocomplete="off" placeholder="sb_publishable_…"></label><button type="submit">Connect test login</button></form><p id="testConfigStatus" class="alert" role="status" aria-live="polite">Saved only in this browser for testing. The test project address is already configured.</p></section>
 <section id="login" class="card hidden">
 <h2>🔐 Sign in to World Connect</h2><p>Already invited and set your password? Sign in below. Otherwise, use Request NOVA Test Access to ask for an invitation.</p>
@@ -147,7 +147,7 @@
 <p>Ask the NOVA administrator to invite your email address. Check your inbox and spam folder, accept the invitation and complete the account setup, then sign in above. Public self-registration isn't available during the private beta.</p>
 </div></div></section>
 <section id="accessRequest" class="card"><h2>🌎 Request NOVA Test Access</h2><p>New here? Request an invitation. A NOVA administrator reviews requests in Supabase and decides whether to invite you. Submitting this form does not create an account or guarantee approval.</p><form id="accessRequestForm"><label>Your name<input id="accessRequestName" required minlength="2" maxlength="70" autocomplete="name" placeholder="Your name"></label><label>Email for your invitation<input id="accessRequestEmail" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com"></label><label>Why do you want to test NOVA? (optional)<textarea id="accessRequestReason" maxlength="300" rows="2" placeholder="Tell us briefly"></textarea></label><button id="accessRequestSubmit" type="submit">Request an invitation</button></form><p id="accessRequestStatus" class="alert" role="status" aria-live="polite">Requests are reviewed manually. Complete the form to request a test invitation. This form never asks for a password.</p><p class="mini">Requests are reviewed manually. Don't include passwords, payment details, or sensitive information.</p></section>
-<section id="passwordRecovery" class="card hidden"><h2>Set your NOVA test password</h2><p>If you arrived from an invitation or password reset, choose a password of at least 8 characters. This is for your NOVA test account only.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button></form></section>
+<section id="passwordRecovery" class="card hidden"><h2>Set your NOVA test password</h2><p>Choose a new password of at least 8 characters. It is saved securely by NOVA authentication, never in this browser as plain text. Keep using the same NOVA preview website to maintain your sign-in session.</p><form id="recoveryForm"><label for="recoveryPassword">New password</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required><button type="submit">Save new password</button><p id="passwordSaveMessage" role="status" aria-live="polite"></p></form></section>
 <section id="app" class="hidden">
 <div class="nova-hero" aria-label="Your NOVA profile">
 <div class="nova-cover"><span class="nova-cover-brand">NOVA <span>WORLD CONNECT</span></span><span class="nova-cover-orbit" aria-hidden="true">✦</span></div>
@@ -256,7 +256,26 @@ $('loginForm').onsubmit=async e=>{
   }catch(e){status('Unable to connect to the sign-in service. Please try again.')}
   finally{if(submit)submit.disabled=false}
 };
-$('recoveryForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('recoveryForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.auth.updateUser({password:$('recoveryPassword').value});if(error){status('Could not set password: '+error.message);return}$('recoveryPassword').value='';$('passwordRecovery').classList.add('hidden');$('app').classList.remove('hidden');status('Your NOVA test password is saved. You can now sign in with your invited email.');history.replaceState(null,'',location.pathname)}catch(e){status('Unable to save password. Try again.')}finally{button.disabled=false}});
+$('recoveryForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const button=$('recoveryForm').querySelector('button[type="submit"]'),message=$('passwordSaveMessage');
+ button.disabled=true;message.textContent='Checking your authenticated session…';
+ try{
+  const {data:current,error:sessionError}=await db.auth.getUser();
+  if(sessionError||!current?.user){message.textContent='Your session has expired. Sign in or use Forgot password to get a fresh reset link.';return}
+  const password=$('recoveryPassword').value;
+  const {data,error}=await db.auth.updateUser({password});
+  if(error){message.textContent='Password not saved: '+error.message;return}
+  if(!data?.user?.id||data.user.id!==current.user.id){message.textContent='Password update could not be verified. Please reset your password from the sign-in screen.';return}
+  $('recoveryPassword').value='';
+  message.textContent='Password update accepted for your authenticated account.';
+  $('passwordRecovery').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  status('Password updated in NOVA authentication. To verify, sign out and sign in again on this same website with your new password.');
+  history.replaceState(null,'',location.pathname);
+ }catch(err){message.textContent='Could not save your password. Check the connection and try again.'}
+ finally{button.disabled=false}
+});
 $('forgotPassword').addEventListener('click',async()=>{const email=$('email').value.trim();if(!email){status('Enter the email for your invited World Connect account first.');$('email').focus();return}if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){status('Enter a valid email address first.');return}const button=$('forgotPassword');button.disabled=true;status('Requesting a password-reset email…');try{const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/world-connect-staging.html'});status(error?'Password reset could not be sent: '+error.message:'If the email belongs to an existing account, check your inbox for a reset link. The account must already exist.')}catch(e){status('Unable to request password reset right now.')}finally{button.disabled=false}});
 $('signup').addEventListener('click',()=>{const panel=$('inviteHelp'),opening=panel.classList.contains('hidden');panel.classList.toggle('hidden',!opening);$('signup').setAttribute('aria-expanded',String(opening));status(opening?'Invitations are managed by the NOVA administrator. This page does not create accounts.':'Sign in if you already have an invited account.')});
 // Self-service signup is disabled in the private beta. Supabase Auth settings must also disable public signup.
@@ -639,7 +658,37 @@ $('profilePhoto').addEventListener('change',async e=>{
 });
 $('removeProfilePhoto').addEventListener('click',()=>{if(!user)return;localStorage.removeItem(photoStoreKey());renderProfileIdentity();$('photoHint').textContent='Profile picture removed from this browser.'});
 async function loadProfile(){if(!user)return;const account=user.id;const {data,error}=await db.from('profiles').select('display_name,bio').eq('id',account).maybeSingle();if(!user||user.id!==account)return;if(error){$('profileSaveMessage').textContent='Could not load your profile. Please retry.';return}$('displayName').value=data?.display_name||'';$('bio').value=data?.bio||'';fillExtraFields(readExtras());renderProfileIdentity(data?.display_name,data?.bio)}
-$('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return;const account=user.id,name=$('displayName').value.trim(),bio=$('bio').value.trim();if(!name){$('profileSaveMessage').textContent='Enter a display name.';return}const extra=getExtraFields();if(extra.handle&&!/^[A-Za-z0-9_]{3,24}$/.test(extra.handle)){$('profileSaveMessage').textContent='Username must be 3–24 letters, numbers or underscores.';return}if(extra.website&&!/^https?:\/\//i.test(extra.website)){$('profileSaveMessage').textContent='Website must start with http:// or https://.';return}const button=$('profileForm').querySelector('button[type="submit"]');button.disabled=true;try{const {error}=await db.from('profiles').upsert({id:account,display_name:name,bio});if(!user||user.id!==account)return;if(error){$('profileSaveMessage').textContent='Could not save your profile. Please retry.';return}try{localStorage.setItem(accountLocalKey(),JSON.stringify(extra))}catch(e){$('profileSaveMessage').textContent='Name and bio saved; extra details could not be stored in this browser.';renderProfileIdentity(name,bio);return}renderProfileIdentity(name,bio);closeProfileEdit();$('profileSaveMessage').textContent='Profile saved. Display name and bio are online in the test account; photo and extra details stay on this browser.';status('Your NOVA test profile was saved.')}catch(err){$('profileSaveMessage').textContent='Unable to save profile right now.'}finally{button.disabled=false}};
+$('profileForm').onsubmit=async e=>{
+ e.preventDefault();if(!user)return;
+ const account=user.id,name=$('displayName').value.trim(),bio=$('bio').value.trim();
+ const message=$('profileSaveMessage');
+ if(!name){message.textContent='Enter a display name.';return}
+ const extra=getExtraFields();
+ if(extra.handle&&!/^[A-Za-z0-9_]{3,24}$/.test(extra.handle)){message.textContent='Username must be 3–24 letters, numbers or underscores.';return}
+ if(extra.website&&!/^https?:\/\//i.test(extra.website)){message.textContent='Website must start with http:// or https://.';return}
+ const button=$('profileForm').querySelector('button[type="submit"]');
+ button.disabled=true;message.textContent='Saving profile to your NOVA account…';
+ try{
+  const {data:saved,error}=await db.from('profiles').upsert({id:account,display_name:name,bio},{onConflict:'id'}).select('id,display_name,bio').single();
+  if(!user||user.id!==account)return;
+  if(error||!saved||saved.id!==account||saved.display_name!==name||saved.bio!==bio){
+   message.textContent=error?'Profile was not saved online. Check Supabase profile permissions and try again.':'Profile update could not be verified. Please try again.';return
+  }
+  const {data:reloaded,error:verifyError}=await db.from('profiles').select('id,display_name,bio').eq('id',account).maybeSingle();
+  if(!user||user.id!==account)return;
+  if(verifyError||!reloaded||reloaded.display_name!==name||reloaded.bio!==bio){
+   message.textContent='NOVA received the save but could not confirm it persisted. Please reload your profile before continuing.';return
+  }
+  let localSaved=true;
+  try{localStorage.setItem(accountLocalKey(),JSON.stringify(extra))}catch(e){localSaved=false}
+  renderProfileIdentity(name,bio);
+  closeProfileEdit();
+  const result='Your display name and bio were saved and verified online.';
+  message.textContent=result+(localSaved?' Photo and extra profile details remain on this device.':' Extra details could not save to this browser. Photo is also device-only.');
+  status(result+' Photo and extra details are device-only.');
+ }catch(err){message.textContent='Could not confirm profile save. Please check connection and try again.'}
+ finally{button.disabled=false}
+};
 // Accepted friends take precedence if two opposite-direction requests already exist.
 // This only deduplicates the display. Existing database rows are not deleted.
 const pairOther=(row,self)=>row.sender_id===self?row.receiver_id:row.sender_id;
