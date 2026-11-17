@@ -10,3 +10,17 @@ for (const flag of ['LIFEONE_FOLLOWS_ENABLED', 'LIFEONE_SAFETY_ENABLED', 'LIFEON
 }
 assert.doesNotMatch(config, /(?:service_role|sb_secret_)[A-Za-z0-9_-]{8,}/i, 'Potential privileged credential in public config');
 console.log('PASS: three private-beta flags remain disabled; no obvious privileged credential in config.js');
+
+// Public browser config must use a secure Supabase endpoint and a publishable,
+// never privileged, credential. These are static checks, not RLS verification.
+const urlAssignments = [...config.matchAll(/\bwindow\.LIFEONE_SUPABASE_URL\s*=\s*["']([^"']+)["']\s*;/g)];
+assert.equal(urlAssignments.length, 1, 'Supabase URL must be assigned exactly once');
+const endpoint = new URL(urlAssignments[0][1]);
+assert.equal(endpoint.protocol, 'https:', 'Supabase endpoint must use HTTPS');
+assert.match(endpoint.hostname, /^[a-z0-9-]+\.supabase\.co$/, 'Unexpected Supabase endpoint host');
+assert.equal(endpoint.username, '', 'Supabase endpoint must not contain credentials');
+assert.equal(endpoint.password, '', 'Supabase endpoint must not contain credentials');
+const keyAssignments = [...config.matchAll(/\bwindow\.LIFEONE_SUPABASE_PUBLISHABLE_KEY\s*=\s*["']([^"']+)["']\s*;/g)];
+assert.equal(keyAssignments.length, 1, 'Publishable key must be assigned exactly once');
+assert.match(keyAssignments[0][1], /^sb_publishable_[A-Za-z0-9_-]+$/, 'Only a publishable key is allowed in public config');
+console.log('PASS: Supabase browser endpoint uses HTTPS and a publishable-format key');
