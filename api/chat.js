@@ -33,28 +33,43 @@ export default async function handler(req, res) {
   contents.push({ role: "user", parts: [{ text: message.trim() }] });
 
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": key
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{
-              text: "You are NOVA, a friendly and helpful AI companion in the LifeOne app. Give clear, practical answers. Use relevant prior turns to answer follow-up questions naturally."
-            }]
+    const requestBody = JSON.stringify({
+      systemInstruction: {
+        parts: [{
+          text: "You are NOVA, a friendly and helpful AI companion in the LifeOne app. Give clear, practical answers. Use relevant prior turns to answer follow-up questions naturally."
+        }]
+      },
+      contents
+    });
+
+    // Gemini can briefly return 503 when it is overloaded. Retry the same
+    // request twice with a short backoff; do not repeat user input in history.
+    let response;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key
           },
-          contents
-        })
-      }
-    );
+          body: requestBody
+        }
+      );
+      if (![502, 503, 504].includes(response.status) || attempt === 2) break;
+      await new Promise(resolve => setTimeout(resolve, 750 * (2 ** attempt)));
+    }
 
     const data = await response.json();
     if (!response.ok) {
       console.error("Gemini error", response.status);
+      if ([502, 503, 504].includes(response.status)) {
+        res.setHeader("Retry-After", "10");
+        return res.status(503).json({
+          error: "NOVA AI is temporarily unavailable. Please try again shortly."
+        });
+      }
       return res.status(502).json({
         error: `Gemini error ${response.status}: ${data.error?.status || "UNKNOWN"}`
       });
