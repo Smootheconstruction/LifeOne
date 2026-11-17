@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const requestBody = JSON.stringify({
       systemInstruction: {
         parts: [{
-          text: "You are NOVA, a friendly and helpful AI companion in the LifeOne app. Give clear, practical answers. Use relevant prior turns to answer follow-up questions naturally."
+          text: "You are NOVA, a friendly, capable AI companion in the LifeOne app. Give clear, specific, practical answers. Read prior conversation turns and resolve short follow-ups such as \"What should I add next?\" or \"Explain the second one\" using the current topic. When the user requests advice or next steps, offer a prioritized recommendation based on what is already known before asking optional follow-up questions. Do not repeatedly ask the user to restate details present in the chat. If essential information is missing, make reasonable assumptions, label them briefly, and still give useful starting advice. Never claim to remember information outside the supplied conversation or invent project progress."
         }]
       },
       contents
