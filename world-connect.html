@@ -57,7 +57,7 @@ $('loginForm').onsubmit=async e=>{
   status('Signing in…');
   try{
     const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
-    if(error){status(error.message);return}
+    if(error){status('Unable to sign in. Check your invited account credentials and try again.');return}
     if(!data?.user||!data?.session){status('Sign-in did not return an active session. Please try again.');return}
     show(data.user);
     $('password').value='';
